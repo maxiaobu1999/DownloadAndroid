@@ -1,7 +1,8 @@
 package com.malong.downloadsample
 
-import androidx.appcompat.app.AppCompatActivity
+import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 

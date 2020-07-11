@@ -1,2 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.malong.download" />
+    package="com.malong.download">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BROADCAST_STICKY" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- for umeng -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <application>
+        <service
+            android:name=".DownloadService"
+            android:enabled="true" />
+        <!-- exported:设置此provider是否可以被其他应用使用。 -->
+        <!-- 指定 authorieties（类似包名的格式，如 com.xx.xx），访问者通过 content://authorities/path 的形式访问 -->
+        <provider
+            android:name=".DownloadProviderProxy"
+            android:authorities="${applicationId}.downloads"
+            android:exported="false" />
+    </application>
+</manifest>
