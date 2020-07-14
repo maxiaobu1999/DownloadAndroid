@@ -259,64 +259,55 @@ public class DownloadManagerTest {
 
     @Test
     public void testPartialDownload() {
-        int i = (int) ((10 / 9) + 0.5);
-        Log.d(TAG, "10/9:" + i);
-        i = (int) (10 / 4 + 0.5);
-        Log.d(TAG, "10/4:" + i);
-        i = (int) (10 / 3 + 0.5);
-        Log.d(TAG, "10/3:" + i);
+        countDownLatch = new CountDownLatch(1);
+        String downloadUrl = Constants.BASE_URL + Constants.IMAGE_NAME;
+        // /data/user/0/com.malong.downloadsample/
+        String filePath = mContext.getFilesDir().getAbsolutePath();//+ File.separator
+        Log.d(TAG, filePath);
+        String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
+        Builder builder = new Builder();
+        builder.setDownloadUrl(downloadUrl);
+        builder.setDescription_path(filePath);
+        builder.setFileName(fileName);
+        builder.setMethod(DownloadInfo.METHOD_PARTIAL);
+        builder.setSeparate_num(8);
+        final DownloadInfo info = builder.build();
 
+        // 开始下载
+        final DownloadHelper manager = DownloadHelper.getInstance();
+        Uri uri = manager.download(mContext, info);
+        info.id = Utils.getDownloadId(mContext, uri);
+        // 注册监听
+        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
+            boolean hasStop = false;
 
-//        countDownLatch = new CountDownLatch(1);
-//        String downloadUrl = Constants.BASE_URL + Constants.IMAGE_NAME;
-//        // /data/user/0/com.malong.downloadsample/
-//        String filePath = mContext.getFilesDir().getAbsolutePath();//+ File.separator
-//        Log.d(TAG, filePath);
-//        String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
-//
-//        Builder builder = new Builder();
-//        builder.setDownloadUrl(downloadUrl);
-//        builder.setDescription_path(filePath);
-//        builder.setFileName(fileName);
-//        builder.setMethod(DownloadInfo.METHOD_PARTIAL);
-//        builder.setSeparate_num(2);
-//        final DownloadInfo info = builder.build();
-//
-//        // 开始下载
-//        final DownloadHelper manager = DownloadHelper.getInstance();
-//        Uri uri = manager.download(mContext, info);
-//        info.id = Utils.getDownloadId(mContext, uri);
-//        // 注册监听
-//        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
-//            boolean hasStop = false;
-//
-//            @Override
-//            public void onProcessChange(long cur) {
-//                super.onProcessChange(cur);
-//                Log.d(DownloadManagerTest.TAG, "进度发生改变：当前进度=" + cur);
+            @Override
+            public void onProcessChange(long cur) {
+                super.onProcessChange(cur);
+                Log.d(DownloadManagerTest.TAG, "进度发生改变：当前进度=" + cur);
 //                // 停止任务
 //                if (!hasStop && cur > 200) {
 //                    hasStop = true;
 //                    manager.stop(mContext,info);
 //                    countDownLatch.countDown();
 //                }
-//            }
-//
-//            @Override
-//            public void onStatusChange(int status) {
-//                Log.d(DownloadManagerTest.TAG, "状态发生改变：当前状态=" + status);
-//                if (status == DownloadInfo.STATUS_SUCCESS)
-//                    countDownLatch.countDown();
-//            }
-//        };
-//        mContext.getContentResolver().registerContentObserver(uri, false, mObserver);
-//
-//        try {
-//            countDownLatch.await();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
+            }
+
+            @Override
+            public void onStatusChange(int status) {
+                Log.d(DownloadManagerTest.TAG, "状态发生改变：当前状态=" + status);
+                if (status == DownloadInfo.STATUS_SUCCESS)
+                    countDownLatch.countDown();
+            }
+        };
+        mContext.getContentResolver().registerContentObserver(uri, false, mObserver);
+
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 //
 //        // 被停止了
 //        int status = ProviderHelper.queryStutas(mContext, info.id);

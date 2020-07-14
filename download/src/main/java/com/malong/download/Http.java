@@ -13,7 +13,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 public class Http {
-    public static final String TAG = "【DownloadCallable】";
+    public static final String TAG = "【Http】";
     DownloadInfo mInfo;
     Context mContext;
     private HttpURLConnection conn;
@@ -21,10 +21,19 @@ public class Http {
     private int contentLength = -1;
     /** 状态码 */
     private int code = -1;
-
+    long start = 0;
+    long end = 0;
     public Http(Context context, DownloadInfo info) {
         mContext = context;
         mInfo = info;
+    }
+
+    public Http(Context context, DownloadInfo info,long start,long end) {
+        mContext = context;
+        mInfo = info;
+        this.start = start;
+        this.end = end;
+
     }
 
     public InputStream getDownloadStream() {
@@ -36,13 +45,18 @@ public class Http {
             conn.setConnectTimeout(10000); // SUPPRESS CHECKSTYLE
             conn.setReadTimeout(10000); // SUPPRESS CHECKSTYLE
 
-            int start = 0;
-            int end = 0;
+
             if (mInfo.method == DownloadInfo.METHOD_BREAKPOINT
                     && mInfo.current_bytes != 0
                     && mInfo.total_bytes > mInfo.current_bytes) {
                 // 部分下载，需要添加Range请求头
-                String range = "byte=s" + mInfo.current_bytes + "-" + mInfo.total_bytes;
+                String range = "bytes=" + mInfo.current_bytes + "-" + mInfo.total_bytes;
+                conn.setRequestProperty("Range", range);// 指定下载文件的指定位置
+            }
+
+            if (mInfo.method == DownloadInfo.METHOD_PARTIAL) {
+                String range = "bytes=" + start+ "-" + end;
+                Log.d(TAG,"range="+ range);
                 conn.setRequestProperty("Range", range);// 指定下载文件的指定位置
             }
 
@@ -50,6 +64,7 @@ public class Http {
             if (conn.getResponseCode() == 200/*HttpStatus.SC_OK*/
                     || conn.getResponseCode() == 206) {// 206大文件拆分状态码。腾讯云断点续传时的返回码
                 contentLength = conn.getContentLength();
+                Log.d(TAG, "contentLength:" + contentLength);
                 is = conn.getInputStream();
             } else {
                 Log.d(TAG, "conn.getResponseCode():" + conn.getResponseCode());

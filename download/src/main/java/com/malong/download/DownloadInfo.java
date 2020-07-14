@@ -222,7 +222,12 @@ public class DownloadInfo {
         if (!TextUtils.isEmpty(info.mime_type))
             values.put(Constants.COLUMN_MIME_TYPE, info.mime_type);
 
+        values.put(Constants.COLUMN_SEPARATE_NUM, info.separate_num);
 
         return values;
     }
+
+
+
 }
+

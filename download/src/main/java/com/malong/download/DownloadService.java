@@ -157,7 +157,7 @@ public class DownloadService extends Service {
                     callable = new BreakpointCallable(mContext, info);
                 } else if (info.method == DownloadInfo.METHOD_PARTIAL) {
                     // 断点续传
-                    callable = new PartialCallable(mContext, info);
+                    callable = new PartialCallable(mContext, info,mExecutor);
                 }
                 if (callable != null) {
                     info.status = DownloadInfo.STATUS_RUNNING;// 状态变为正在下载
