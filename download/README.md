@@ -280,7 +280,21 @@ port:8080
 
 adb shell pm clear com.malong.downloadsample
 
-
 1、写入数据库
 2、service开始下载
 3、写回数据库
+
+
+
+使用分区存储的应用对自己创建的文件始终拥有读/写权限，无论文件是否位于应用的专有目录内。因此，如果您的应用仅保存和访问自己创建的文件，则无需请求获得 READ_EXTERNAL_STORAGE 或 WRITE_EXTERNAL_STORAGE 权限。
+
+不过，若要访问其他应用创建的文件，则必须满足以下两个条件：
+
+您的应用已获得 READ_EXTERNAL_STORAGE 权限。
+这些文件位于以下其中一个明确定义的媒体集合中：
+
+照片：存储在 MediaStore.Images 中。
+视频：存储在 MediaStore.Video 中。
+音频文件：存储在 MediaStore.Audio 中。
+MediaStore API 使用
+https://developer.android.com/training/data-storage/files/media?hl=zh-cn

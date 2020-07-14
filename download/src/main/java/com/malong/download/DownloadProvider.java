@@ -35,7 +35,7 @@ public final class DownloadProvider {
 
         // 该内容提供者使用的数据库
         SQLiteOpenHelper mOpenHelper = DatabaseHelper.getInstance(context);
-        mDb = mOpenHelper.getReadableDatabase();
+        mDb = mOpenHelper.getWritableDatabase();
         // Initialize the system uid
 //        mSystemUid = Process.SYSTEM_UID;
     }
@@ -91,15 +91,82 @@ public final class DownloadProvider {
         // 参数2：SQl不允许一个空列，若ContentValues是空，那么这一列被明确的指明为NULL值
         // 参数3：ContentValues对象
         // 新增的主键
-        long insertId = mDb.insert(Constants.DB_TABLE, null, values);// 插入数据
+        int insertId = (int) mDb.insert(Constants.DB_TABLE, null, values);// 插入数据
         if (insertId == -1) {
             // 插入失败
             return null;
         }
-        Uri affectedUri = Uri.parse(Utils.getDownloadBaseUriString(mContext) + "/" + insertId);
+        Uri affectedUri = Utils.generateDownloadUri(mContext, insertId);
         Utils.startdownloadService(mContext);
         mContext.getContentResolver().notifyChange(affectedUri, null);
         return affectedUri;
+    }
+
+
+    /**
+     * 更ContentProvider中已有的数据。
+     * 1、状态发生改变 2、下载进度发生改变
+     *
+     * @param uri           使用uri参数来确定更新哪一张表中的数据
+     * @param values        新数据保存在values参数中
+     * @param selection     约束条件 >? and !=?
+     * @param selectionArgs 约束内容  new String[] { "28", "含含" }
+     * @return 受影响的行数将作为返回值返回。
+     */
+    public int update(@NonNull Uri uri, @Nullable ContentValues values,
+                      @Nullable String selection, @Nullable String[] selectionArgs) {
+        if (values == null) {
+            return 0;
+        }
+        // 修改
+        int update = mDb.update(Constants.DB_TABLE, values, selection, selectionArgs);
+        if (update == 0) {
+            // 一条没改成功，失败了
+            return 0;// 别通知CO了
+        }
+        // 1、状态发生改变 2、下载进度发生改变
+        if (values.containsKey(Constants.COLUMN_STATUS)
+                || values.containsKey(Constants.COLUMN_CURRENT_BYTES)) {
+            mContext.getContentResolver().notifyChange(uri, null);
+            if (values.containsKey(Constants.COLUMN_STATUS)) {
+                Utils.startdownloadService(mContext);
+            }
+        }
+//
+//        //        // 先查出受影响的条目
+////        Cursor cursor = mDb.query(Constants.DB_TABLE, new String[]{Constants._ID}
+////                , selection, selectionArgs, null, null, null);
+////        if (cursor == null || !cursor.moveToFirst()) {
+////            // 没有可修改的条目
+////            return 0;// 就别修改了
+////        }
+////        ArrayList<Integer> list = new ArrayList<>();// 记录受影响的_id
+////        do {
+////            list.add(cursor.getInt(0));
+////        } while (cursor.moveToNext());
+////        Closeables.closeSafely(cursor);
+//        // 不是running状态的，不通知当前进度
+//        if (values.containsKey(Constants.COLUMN_CURRENT_BYTES)) {
+//            Cursor cursor = mDb.query(Constants.DB_TABLE,
+//                    new String[]{Constants._ID},
+//                    Constants._ID + "=? AND " + Constants.COLUMN_STATUS + "=?",
+//                    new String[]{String.valueOf(values.getAsInteger(Constants._ID)),
+//                            String.valueOf(DownloadInfo.STATUS_RUNNING)},
+//                    null, null, null);
+//            if (cursor.moveToFirst()) {
+//                Closeables.closeSafely(cursor);
+//                return 0;
+//            }
+//            Closeables.closeSafely(cursor);
+//        }
+//
+//
+////        }
+//
+//        // 检查状态status，eg：再次下载。需要notify
+//
+//        // 检查进度
+        return update;
     }
 
     /**
@@ -112,69 +179,32 @@ public final class DownloadProvider {
      * @return 删除的条数
      */
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        // 先查出受影响的条目
-        Cursor cursor = mDb.query(Constants.DB_TABLE, new String[]{Constants._ID}
-                , selection, selectionArgs, null, null, null);
-        if (cursor == null || !cursor.moveToFirst()) {
-            // 没有可删除的条目
-            return 0;// 就别删了
-        }
-        ArrayList<Integer> list = new ArrayList<>();
-        do {
-            list.add(cursor.getInt(0));
-        } while (cursor.moveToNext());
-        Closeables.closeSafely(cursor);
+//        // 先查出受影响的条目
+//        Cursor cursor = mDb.query(Constants.DB_TABLE, new String[]{Constants._ID}
+//                , selection, selectionArgs, null, null, null);
+//        if (cursor == null || !cursor.moveToFirst()) {
+//            // 没有可删除的条目
+//            return 0;// 就别删了
+//        }
+//        ArrayList<Integer> list = new ArrayList<>();
+//        do {
+//            list.add(cursor.getInt(0));
+//        } while (cursor.moveToNext());
+//        Closeables.closeSafely(cursor);
         int delete = mDb.delete(Constants.DB_TABLE, selection, selectionArgs);
         if (delete == 0) {
             // 一条没删成功，失败了
             return 0;// 别通知CO了
         }
-        // 忽略删除量< 应删量
-        for (Integer _id : list) {
-            Uri affectedUri = Utils.getDownloadUri(mContext, _id);
-            // 通知contentObserver
-            mContext.getContentResolver().notifyChange(affectedUri, null);
-        }
-        return delete;
-    }
-
-    /**
-     * 更ContentProvider中已有的数据。
-     *
-     * @param uri           使用uri参数来确定更新哪一张表中的数据
-     * @param values        新数据保存在values参数中
-     * @param selection     约束条件 >? and !=?
-     * @param selectionArgs 约束内容  new String[] { "28", "含含" }
-     * @return 受影响的行数将作为返回值返回。
-     */
-    public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection, @Nullable String[] selectionArgs) {
-//        // 先查出受影响的条目
-//        Cursor cursor = mDb.query(Constants.DB_TABLE, new String[]{Constants._ID}
-//                , selection, selectionArgs, null, null, null);
-//        if (cursor == null || !cursor.moveToFirst()) {
-//            // 没有可修改的条目
-//            return 0;// 就别修改了
-//        }
-//        ArrayList<Integer> list = new ArrayList<>();// 记录受影响的_id
-//        do {
-//            list.add(cursor.getInt(0));
-//        } while (cursor.moveToNext());
-//        Closeables.closeSafely(cursor);
-        // 修改
-        int update = mDb.update(Constants.DB_TABLE, values, selection, selectionArgs);
-//        if (update == 0) {
-//            // 一条没改成功，失败了
-//            return 0;// 别通知CO了
-//        }
 //        // 忽略删除量< 应删量
 //        for (Integer _id : list) {
-//            Uri affectedUri = Utils.getDownloadUri(mContext, _id);
+//            Uri affectedUri = Utils.generateDownloadUri(mContext, _id);
 //            // 通知contentObserver
 //            mContext.getContentResolver().notifyChange(affectedUri, null);
 //        }
-        return update;
+        Utils.startdownloadService(mContext);
+        return delete;
     }
-
 
     /**
      * 根据传入的内容URI来返回相应的MIME类型。

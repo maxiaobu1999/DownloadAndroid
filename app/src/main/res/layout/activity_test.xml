@@ -10,4 +10,12 @@
         android:layout_width="222dp"
         android:layout_height="100dp"
         android:text="123" />
+
+
+    <Button
+        android:id="@+id/stop"
+        android:layout_width="222dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="300dp"
+        android:text="停止" />
 </FrameLayout>

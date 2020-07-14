@@ -1,7 +1,10 @@
 package com.malong.download.utils;
 
+import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
+
+import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -139,5 +142,36 @@ public class FileUtils {
         }
 
         return isDeletedAll;
+    }
+
+    /**
+     * 从url从抽取文件名
+     *
+     * @param url String
+     * @return /xxxx.mp4?yyy, 返回xxxx.mp4
+     */
+    @Nullable
+    public static String getFileNameFromUrl(String url) {
+        String filename = null;
+        String decodedUrl = Uri.decode(url);
+        if (decodedUrl != null) {
+            int queryIndex = decodedUrl.indexOf('?');
+            // If there is a query string strip it, same as desktop browsers
+            if (queryIndex > 0) {
+                decodedUrl = decodedUrl.substring(0, queryIndex);
+            }
+            if (!decodedUrl.endsWith("/")) {
+                int index = decodedUrl.lastIndexOf('/') + 1;
+                if (index > 0) {
+                    filename = decodedUrl.substring(index);
+                }
+            }
+        }
+
+        return filename;
+    }
+
+    public static boolean checkFileExist(String dir, String filename) {
+        return !TextUtils.isEmpty(dir + filename) && new File(dir + filename).exists();
     }
 }

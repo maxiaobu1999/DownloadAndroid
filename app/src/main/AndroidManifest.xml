@@ -3,9 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.malong.downloadsample">
     <uses-permission android:name="android.permission.INTERNET" />
-
+<!--  android:requestLegacyExternalStorage="false" -->
     <application
-        android:requestLegacyExternalStorage="false"
+
         android:name=".App"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

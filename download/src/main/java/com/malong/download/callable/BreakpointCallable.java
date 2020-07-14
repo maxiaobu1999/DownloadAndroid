@@ -8,37 +8,42 @@ import com.malong.download.DownloadInfo;
 import com.malong.download.Http;
 import com.malong.download.ProviderHelper;
 import com.malong.download.utils.Closeables;
-import com.malong.download.utils.FileUtils;
-import com.malong.download.utils.Utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.util.concurrent.Callable;
 
-/** 普通下载 */
-public class DownloadCallable implements Callable<DownloadInfo> {
+/** 断点续传下载 */
+public class BreakpointCallable implements Callable<DownloadInfo> {
     public static final String TAG = "【DownloadCallable】";
     private static boolean DEBUG = Constants.DEBUG;
     DownloadInfo mInfo;
     Context mContext;
 
-    public DownloadCallable(Context context, DownloadInfo info) {
+    public BreakpointCallable(Context context, DownloadInfo info) {
         mContext = context;
         mInfo = info;
     }
 
     @Override
     public DownloadInfo call() {
-        if (DEBUG) Log.d(TAG, "call()执行");
-        // 删除掉过去下载的文件（eg：下一半的重新下载）
-        File destFile = new File(mInfo.destination_path + mInfo.fileName);// 输出文件
+        Log.d(TAG, "mInfo.id:" + mInfo.id);
+        //noinspection ResultOfMethodCallIgnored
+        new File( mInfo.destination_path).mkdirs();
+        File destFile = new File(mInfo.destination_path+mInfo.fileName);// 输出文件
+        // 文件存在
         if (destFile.exists()) {
-            FileUtils.deleteFile(destFile);
+            Log.d(TAG, "destFile.length():" + destFile.length());
         }
+        Log.d(TAG, "mInfo.current_bytes:" + mInfo.current_bytes);
+        Log.d(TAG, "mInfo.total_bytes:" + mInfo.total_bytes);
         Http http = new Http(mContext, mInfo);
         // 下载内容的长度
-        mInfo.total_bytes = http.getContentLength();
+        if (mInfo.total_bytes != 0) {
+            mInfo.total_bytes = http.getContentLength();
+        }
         InputStream is = null;
         FileOutputStream os = null;
         try {
@@ -49,26 +54,27 @@ public class DownloadCallable implements Callable<DownloadInfo> {
                 ProviderHelper.onStatusChange(mContext, mInfo);
                 return mInfo;
             }
-            os = Utils.getOutputStream(mContext, mInfo);
+            os = new FileOutputStream(destFile);
             final int defaultBufferSize = 1024 * 3;
             byte[] buf = new byte[defaultBufferSize];
-            long size = 0;
+            long size = mInfo.current_bytes;
             int len;
             while ((len = is.read(buf)) > 0) {
                 os.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
-                Log.d(TAG, "size:" + size);
                 ProviderHelper.updateProcess(mContext, mInfo);
             }
-                os.flush();
+            os.flush();
             // 下载完成
             mInfo.status = DownloadInfo.STATUS_SUCCESS;
             ProviderHelper.onStatusChange(mContext, mInfo);
+        } catch (InterruptedIOException e) {
+            // 下载被取消,finally会执行
         } catch (Exception e) {
+            e.printStackTrace();
             mInfo.status = DownloadInfo.STATUS_FAIL;
             ProviderHelper.onStatusChange(mContext, mInfo);
-            e.printStackTrace();
         } finally {
             Closeables.closeSafely(is);
             http.close();

@@ -1,7 +1,12 @@
 package com.malong.download;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +16,8 @@ public class DownloadInfo {
     public static final int STATUS_PENDING = 190;
     /** 正在下载 */
     public static final int STATUS_RUNNING = 192;
+    /** 停止 */
+    public static final int STATUS_STOP = 193;
     /** 下载完成 */
     public static final int STATUS_SUCCESS = 200;
     /** 下载失败 */
@@ -116,16 +123,19 @@ public class DownloadInfo {
     /** 下载方式：删除旧文件，重新下载 */
     public static final int METHOD_COMMON = 0;
     /** 下载方式：断点续传 */
-    public static final int METHOD_CONTINUE = 1;
+    public static final int METHOD_BREAKPOINT = 1;
+
+    /** 下载方式：分片下载 */
+    public static final int METHOD_PARTIAL = 2;
 
     /** id主键 */
     public int id;
     /** 下载链接 */
     public String download_url;
     /** 保存地址uri */
-    public String description_uri;
+    public String destination_uri;
     /** 保存地址路径 */
-    public String description_filepath;
+    public String destination_path;
     /** 保存地址路径 */
     public String fileName;
 
@@ -140,27 +150,79 @@ public class DownloadInfo {
     public long total_bytes;
     /** 当前下载的文件大小 BIGINT */
     public long current_bytes;
+    /** 下载数据的MIME类型 TEXT */
+    public String mime_type;
+
+    /** 分片数量 */
+    public int separate_num;
+
+
+    /** 请求头 json */
+    public String header;
 
     /** 断点续传 range 起始位置 */
     public long mRangeStartByte = 0;
     /** 断点续传 range 结束位置 */
     public long mRangeEndByte = -1;
 
-    public static List<DownloadInfo> readDownloadInfos(Context context, Cursor cursor) {
-        ArrayList<DownloadInfo> downloadInfos = new ArrayList<>();
+    @NonNull
+    public static List<DownloadInfo> readDownloadInfos(Context context, @Nullable Cursor cursor) {
+        ArrayList<DownloadInfo> infoList = new ArrayList<>();
+        if (cursor == null) {
+            return infoList;
+        }
         for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
             DownloadInfo info = new DownloadInfo();
-            info.id = cursor.getInt(cursor.getColumnIndexOrThrow(Constants._ID));
-            info.status = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_STATUS));
-            info.download_url = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_DOWNLOAD_URL));
-            info.description_uri = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_DESTINATION_URI));
-            info.description_filepath = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_DESTINATION_PATH));
-            info.fileName = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_FILE_NAME));
-            info.method = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_METHOD));
-            info.total_bytes = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_TOTAL_BYTES));
-            info.current_bytes = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_CURRENT_BYTES));
-            downloadInfos.add(info);
+            if (cursor.getColumnIndex(Constants._ID) != -1)
+                info.id = cursor.getInt(cursor.getColumnIndexOrThrow(Constants._ID));
+            if (cursor.getColumnIndex(Constants.COLUMN_STATUS) != -1)
+                info.status = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_STATUS));
+            if (cursor.getColumnIndex(Constants.COLUMN_DOWNLOAD_URL) != -1)
+                info.download_url = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_DOWNLOAD_URL));
+            if (cursor.getColumnIndex(Constants.COLUMN_DESTINATION_URI) != -1)
+                info.destination_uri = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_DESTINATION_URI));
+            if (cursor.getColumnIndex(Constants.COLUMN_DESTINATION_PATH) != -1)
+                info.destination_path = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_DESTINATION_PATH));
+            if (cursor.getColumnIndex(Constants.COLUMN_FILE_NAME) != -1)
+                info.fileName = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_FILE_NAME));
+            if (cursor.getColumnIndex(Constants.COLUMN_MIME_TYPE) != -1)
+                info.mime_type = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_MIME_TYPE));
+            if (cursor.getColumnIndex(Constants.COLUMN_METHOD) != -1)
+                info.method = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_METHOD));
+            if (cursor.getColumnIndex(Constants.COLUMN_HEADER) != -1)
+                info.header = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_HEADER));
+            if (cursor.getColumnIndex(Constants.COLUMN_TOTAL_BYTES) != -1)
+                info.total_bytes = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_TOTAL_BYTES));
+            if (cursor.getColumnIndex(Constants.COLUMN_CURRENT_BYTES) != -1)
+                info.current_bytes = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_CURRENT_BYTES));
+
+            if (cursor.getColumnIndex(Constants.COLUMN_SEPARATE_NUM) != -1)
+                info.separate_num = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_SEPARATE_NUM));
+            infoList.add(info);
         }
-        return downloadInfos;
+        return infoList;
+    }
+
+
+    public static ContentValues info2ContentValues(DownloadInfo info) {
+        ContentValues values = new ContentValues();
+        values.put(Constants.COLUMN_STATUS, info.status);
+        values.put(Constants.COLUMN_DOWNLOAD_URL, info.download_url);
+        if (!TextUtils.isEmpty(info.download_url))
+            values.put(Constants.COLUMN_DESTINATION_URI, info.destination_uri);
+        if (!TextUtils.isEmpty(info.destination_path))
+            values.put(Constants.COLUMN_DESTINATION_PATH, info.destination_path);
+        values.put(Constants.COLUMN_FILE_NAME, info.fileName);
+        values.put(Constants.COLUMN_METHOD, info.method);
+        values.put(Constants.COLUMN_HEADER, info.header);
+        if (info.total_bytes != 0)
+            values.put(Constants.COLUMN_TOTAL_BYTES, info.total_bytes);
+        if (info.current_bytes != 0)
+            values.put(Constants.COLUMN_CURRENT_BYTES, info.current_bytes);
+        if (!TextUtils.isEmpty(info.mime_type))
+            values.put(Constants.COLUMN_MIME_TYPE, info.mime_type);
+
+
+        return values;
     }
 }

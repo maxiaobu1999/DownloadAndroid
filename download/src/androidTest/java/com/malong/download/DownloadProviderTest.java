@@ -33,7 +33,7 @@ public class DownloadProviderTest {
 
     @Test
     public void testUri() {
-        Uri downloadUri = Utils.getDownloadUri(mContext, 11);
+        Uri downloadUri = Utils.generateDownloadUri(mContext, 11);
         String path = downloadUri.getPath();// /downloads/11
         Log.d(TAG, "path="+path);
         String authority = downloadUri.getAuthority();// com.malong.download.test

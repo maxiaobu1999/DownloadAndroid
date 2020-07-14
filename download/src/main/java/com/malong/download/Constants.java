@@ -1,7 +1,10 @@
 package com.malong.download;
 
 public class Constants {
-    public static final String BASE_URL = "https://maqinglong-1253423006.cos.ap-beijing-1.myqcloud.com/static/";// mini_video/
+    public static final String BASE_URL = "https://maqinglong-1253423006.cos.ap-beijing-1.myqcloud.com/lib_download/";// mini_video/
+    public static final String TIK_NAME = "mda-jk8du50gv2jwae5r.mp4";// 诛仙小说 size：4557690
+    public static final String IMAGE_NAME = "mda-jk8du50gv2jwae5r00000.jpg";// 图片 size：	77859
+    public static final String ZHU_XIAN_NAME = "诛仙.txt";// 诛仙小说 size：4557690
     public static boolean DEBUG = true;
 
     /** 数据库名称 */
@@ -17,7 +20,7 @@ public class Constants {
     /** 下载地址 TEXT 必须*/
     public static final String COLUMN_DOWNLOAD_URL = "download_url";
     /** 保存地址 uri TEXT nullable*/
-    public static final String COLUMN_DESTINATION_URI = "description_uri";
+    public static final String COLUMN_DESTINATION_URI = "destination_uri";
     /** 保存地址 文件路径（不一定有，ROM P 媒体文件夹可能获取不到文件的实际路径） TEXT */
     public static final String COLUMN_DESTINATION_PATH = "destination_path";
     /** 文件的名称，没有起一个 TEXT 必须*/
