@@ -4,6 +4,8 @@ import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -26,26 +28,6 @@ public class DownloadProviderProxy extends ContentProvider {
         return false;
     }
 
-
-    /**
-     * 从ContentProvider中查询数据。使用uri参数来确定查询哪张表
-     *
-     * @param uri           uri
-     * @param projection    参数用于确定查询哪些列，返回哪些列的内容
-     * @param selection     约束条件 列名1>? and 列名2!=?
-     * @param selectionArgs 约束内容  new String[] { "28", "含含" } ？的值
-     * @param sortOrder     对结果进行排序
-     * @return 查询的结果存放在Cursor对象中返回。
-     */
-    @Nullable
-    @Override
-    public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection,
-                        @Nullable String[] selectionArgs, @Nullable String sortOrder) {
-        if (DEBUG) {
-            Log.d(TAG, "query() ");
-        }
-        return getProvider().query(uri, projection, selection, selectionArgs, sortOrder);
-    }
 
     /**
      * 根据传入的内容URI来返回相应的MIME类型。
@@ -107,6 +89,41 @@ public class DownloadProviderProxy extends ContentProvider {
         }
         return getProvider().update(uri, values, selection, selectionArgs);
     }
+
+
+    /**
+     * 从ContentProvider中查询数据。使用uri参数来确定查询哪张表
+     *
+     * @param uri           uri
+     * @param projection    参数用于确定查询哪些列，返回哪些列的内容
+     * @param selection     约束条件 列名1>? and 列名2!=?
+     * @param selectionArgs 约束内容  new String[] { "28", "含含" } ？的值
+     * @param sortOrder     对结果进行排序
+     * @return 查询的结果存放在Cursor对象中返回。
+     */
+    @Nullable
+    @Override
+    public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection,
+                        @Nullable String[] selectionArgs, @Nullable String sortOrder) {
+        if (DEBUG) {
+            Log.d(TAG, "query() ");
+        }
+        return getProvider().query(uri, projection, selection, selectionArgs, sortOrder);
+    }
+
+    @Nullable
+    @Override
+    public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection, @Nullable String[] selectionArgs, @Nullable String sortOrder, @Nullable CancellationSignal cancellationSignal) {
+        return query(uri, projection, selection, selectionArgs, sortOrder);
+    }
+
+    @Nullable
+    @Override
+    @Deprecated
+    public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable Bundle queryArgs, @Nullable CancellationSignal cancellationSignal) {
+        return super.query(uri, projection, queryArgs, cancellationSignal);
+    }
+
 
     @Nullable
     @Override

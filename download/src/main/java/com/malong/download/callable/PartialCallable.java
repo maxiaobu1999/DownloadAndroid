@@ -1,215 +1,233 @@
 package com.malong.download.callable;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.ContentObserver;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Log;
 
+import com.malong.download.CancelableThread;
+import com.malong.download.Constants;
+import com.malong.download.DownloadContentObserver;
 import com.malong.download.DownloadInfo;
 import com.malong.download.Http;
+import com.malong.download.HttpInfo;
 import com.malong.download.ProviderHelper;
-import com.malong.download.utils.Closeables;
+import com.malong.download.partial.PartialInfo;
+import com.malong.download.partial.PartialProviderHelper;
+import com.malong.download.utils.Utils;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.InterruptedIOException;
-import java.io.RandomAccessFile;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.FutureTask;
 
-/** 分片 */
+/**
+ * 分片
+ * 1\每个分片的进度
+ * 2、
+ */
 public class PartialCallable implements Callable<DownloadInfo> {
     public static final String TAG = "【PartialCallable】";
-    DownloadInfo mInfo;
-    Context mContext;
-    ExecutorService mExecutorService;
+    private static boolean DEBUG = Constants.DEBUG & true;
+    private DownloadInfo mInfo;
+    private Context mContext;
+    //    private ExecutorService mExecutorService;
+    @SuppressWarnings("ConstantConditions")
+    private Handler mHandler;
+
+    private long[] mProcessList;
+    private int doneNum;
+    private List<ContentObserver> observers = new ArrayList<>();
+    private CancelableThread mThread;
+
 
     public PartialCallable(Context context, DownloadInfo info, ExecutorService executorService) {
         mContext = context;
         mInfo = info;
-        mExecutorService = executorService;
+//        mExecutorService = executorService;
+        mProcessList = new long[info.separate_num];
     }
 
-    class SubCallable implements Callable<DownloadInfo> {
-        public static final String TAG1 = "【SubCallable】";
-        //        DownloadInfo mInfo1;
-        Context mContext1;
-        long start;
-        long end;
-
-        SubCallable(Context context, DownloadInfo info, long start, long end) {
-            mContext1 = context;
-//            mInfo1 = info;
-            this.start = start;
-            this.end = end;
-        }
-
-        @Override
-        public DownloadInfo call() throws Exception {
-            Log.d(TAG1, "call()执行");
-            Log.d(TAG1, "start:" + start);
-            Log.d(TAG1, "end:" + end);
-            //noinspection ResultOfMethodCallIgnored
-            new File(mInfo.destination_path).mkdirs();
-            File destFile = new File(mInfo.destination_path + mInfo.fileName);// 输出文件
-            // 文件存在
-            if (destFile.exists()) {
-                Log.d(TAG, "destFile.length():" + destFile.length());
-            }
-
-
-            Http http = new Http(mContext1, mInfo, start, end);
-
-            InputStream is = null;
-            RandomAccessFile raf = null;
-            try {
-                is = http.getDownloadStream();
-                if (is == null) {
-                    Log.d(TAG, "http.getCode():" + http.getCode());
-                    mInfo.status = DownloadInfo.STATUS_FAIL;
-                    ProviderHelper.onStatusChange(mContext, mInfo);
-                    return mInfo;
-                }
-                raf = new RandomAccessFile(destFile, "rw");
-//                long l = FileUtils.copyStream(is, raf, 0);
-                raf.seek(start);
-                final int defaultBufferSize = 1024 * 3;
-                byte[] buf = new byte[defaultBufferSize];
-                long size = 0;
-                int len;
-                while ((len = is.read(buf)) > 0) {
-                    raf.write(buf, 0, len);
-                    size += len;
-                    updateProcess(len);
-                }
-
-//                mInfo.current_bytes += len;
-//                ProviderHelper.updateProcess(mContext, mInfo);
-//                Log.d(TAG, "size:" + size);
-
-
-//                final int defaultBufferSize = 1024 * 3;
-//                byte[] buf = new byte[defaultBufferSize];
-//                long size = mInfo.current_bytes;
-//                int len;
-//                while ((len = is.read(buf)) > 0) {
-//                    raf.write(buf, 0, len);
-//                    size += len;
-//                    mInfo.current_bytes = size;
-//                    ProviderHelper.updateProcess(mContext, mInfo);
-//                }
-                // 下载完成
-                mInfo.status = DownloadInfo.STATUS_SUCCESS;
-                ProviderHelper.onStatusChange(mContext, mInfo);
-            } catch (InterruptedIOException e) {
-                // 下载被取消,finally会执行
-            } catch (Exception e) {
-                e.printStackTrace();
-                mInfo.status = DownloadInfo.STATUS_FAIL;
-                ProviderHelper.onStatusChange(mContext, mInfo);
-            } finally {
-                Closeables.closeSafely(is);
-                http.close();
-                Closeables.closeSafely(raf);
-            }
-
-
-            return null;
-        }
-    }
-
-    public synchronized void updateProcess(int add) {
-        mInfo.current_bytes += add;
-        ProviderHelper.updateProcess(mContext, mInfo);
-        Log.d(TAG, "size:" + mInfo.current_bytes);
-    }
 
     @Override
     public DownloadInfo call() throws Exception {
         Log.d(TAG, "PartialCallable:call()执行");
         Log.d(TAG, "mInfo.separate_num:" + mInfo.separate_num);
-        // 先获取文件长度
-        Http http = new Http(mContext, mInfo);
-        mInfo.total_bytes = http.fetchLength();
-        Log.d(TAG, "mInfo.total_bytes:" + mInfo.total_bytes);
-        long partSize = mInfo.total_bytes / mInfo.separate_num;
-        for (int i = 0; i < mInfo.separate_num; i++) {
-            long start = i * partSize;
-            long end = start + partSize - 1;
-            if (i == mInfo.separate_num - 1) {
-                end = mInfo.total_bytes;
+        mThread = (CancelableThread) Thread.currentThread();
+        Log.d(TAG, "Looper.myLooper():" + Looper.myLooper());
+        if (Looper.myLooper() == null)
+            Looper.prepare();
+        Looper looper = Looper.myLooper();
+        if (looper != null) mHandler = new Handler(looper);
+        List<PartialInfo> partialInfos = PartialProviderHelper.queryPartialInfoList(mContext, mInfo.id);
+        if (partialInfos.size() > 0) {
+            // 分片的续传
+            for (PartialInfo partialInfo : partialInfos) {
+                Log.d(TAG, "partialInfo.status:" + partialInfo.status);
+                if (partialInfo.status == PartialInfo.STATUS_SUCCESS) {
+                    doneNum++;// 下载完成的不再处理，记录为完成
+                } else {
+                    PartialProviderHelper.updatePartialStutas(mContext,
+                            PartialInfo.STATUS_PENDING, partialInfo);
+                    final ContentObserver observer = new PartialObserver(mHandler);
+                    mContext.getContentResolver().registerContentObserver(
+                            Utils.generatePartialBUri(mContext, partialInfo.id)
+                            , true, observer);
+                    observers.add(observer);
+                }
             }
+        } else {
+            // 重新下载
+            HttpInfo httpInfo = new HttpInfo();
+            httpInfo.download_url = mInfo.download_url;
+            httpInfo.destination_uri = mInfo.destination_uri;
+            httpInfo.destination_path = mInfo.destination_path;
+            httpInfo.fileName = mInfo.fileName;
+//        httpInfo.status = mInfo.status;
+            httpInfo.method = mInfo.method;
+            httpInfo.total_bytes = mInfo.total_bytes;
+            httpInfo.current_bytes = 0;// 这里是为了获取长度
 
-            Callable<DownloadInfo> callable = new SubCallable(mContext, mInfo, start, end);
-            FutureTask<DownloadInfo> task = new FutureTask<>(callable);
-            mExecutorService.submit(task);
+            // 先获取文件长度
+            Http http = new Http(mContext, httpInfo);
+            mInfo.total_bytes = http.fetchLength();
+            mInfo.etag = http.getETag();
+            ProviderHelper.updateDownloadInfoPortion(mContext, mInfo);
+            long partSize = mInfo.total_bytes / mInfo.separate_num;
+            for (int i = 0; i < mInfo.separate_num; i++) {
+                long start = i * partSize;
+                long end = start + partSize - 1;
+                if (i == mInfo.separate_num - 1) {
+                    end = mInfo.total_bytes;
+                }
+
+                PartialInfo info = new PartialInfo();
+                info.status = PartialInfo.STATUS_PENDING;// 设置成待下载
+                info.start_index = start;
+                info.end_index = end;
+
+                info.download_id = mInfo.id;
+                info.num = i;
+                info.current_bytes = 0;
+                info.total_bytes = mInfo.total_bytes;
+                info.download_url = mInfo.download_url;
+                info.destination_uri = mInfo.destination_uri;
+                info.destination_path = mInfo.destination_path;
+                info.fileName = mInfo.fileName;
+
+                ContentValues values = PartialInfo.info2ContentValues(info);
 
 
+                Uri insert = mContext.getContentResolver().insert(Utils.getPartialBaseUri(mContext), values);
+                if (insert == null) {
+                    Log.e(TAG, "插入失败+++");
+                }
+
+                final ContentObserver observer = new PartialObserver(mHandler);
+                mContext.getContentResolver().registerContentObserver(insert
+                        , true, observer);
+                observers.add(observer);
+            }
         }
 
 
-//            HttpURLConnection connection = null;
-//            int startIndex = 100;
-//            int endIndex = 200;
-//            InputStream inputStream = null;
-//            FileOutputStream outputStream = null;
-//            File parentDir = new File(filepath).getParentFile();
-//            assert parentDir != null;
-//            //noinspection ResultOfMethodCallIgnored
-//            parentDir.mkdirs();
-//
-//
-////            long size = 0;
-//        HttpURLConnection conn = null;
-//        InputStream is = null;
-//        RandomAccessFile os = null;
-//
-//        try {
-//            URL imageUrl = new URL(mInfo.download_url);
-//            conn = (HttpURLConnection) (imageUrl.openConnection());
-//            conn.setConnectTimeout(10000); // SUPPRESS CHECKSTYLE
-//            conn.setReadTimeout(10000); // SUPPRESS CHECKSTYLE
-//
-////
-////                if (destFile.exists()) {
-////                    // 文件存在
-////                    // 断点续传
-////                    Log.d(TAG, "文件存在");
-////                    long length = destFile.length();
-////                    Log.d(TAG, "文件length:" + length);
-////
-//
-//
-////                conn.setRequestProperty("Range", "bytes=" + 100 + "-" + 200);// 指定下载文件的指定位置
-//
-////                }
-//
-//
-//            conn.connect();
-//            if (conn.getResponseCode() == 200/*HttpStatus.SC_OK*/
-//                    || conn.getResponseCode() == 206) {// 206大文件拆分状态码。腾讯云断点续传时的返回码
-//                is = conn.getInputStream();
-//                if (null != is) {
-//                    os = new RandomAccessFile(destFile, "rw");
-//                    long l = FileUtils.copyStream(is, os, 0);
-//                    Log.d(TAG, "l:" + l);
-//                }
-//            } else {
-//                Log.d(TAG, "conn.getResponseCode():" + conn.getResponseCode());
-//                Log.d(TAG, conn.getResponseMessage());
-//            }
-//
-//        } catch (InterruptedIOException | OutOfMemoryError | MalformedURLException e) {
-//            e.printStackTrace();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        } finally {
-//            Closeables.closeSafely(is);
-//            if (null != conn) {
-//                conn.disconnect();
-//            }
-//            Closeables.closeSafely(os);
-//        }
+        Looper.loop();
+        return mInfo;
+    }
 
-        return null;
+    public void updateProcess(Uri uri, long cur) {
+        String s = uri.getQueryParameter(Constants.KEY_PARTIAL_NUM);
+        if (!TextUtils.isEmpty(s)) {
+            int partialNum = Integer.parseInt(s);
+            mProcessList[partialNum] = cur;
+            long curProcess = 0;
+            for (long atomicLong : mProcessList) {
+                curProcess += atomicLong;
+            }
+            mInfo.current_bytes = curProcess;
+            ProviderHelper.updateProcess(mContext, mInfo);
+            Log.d(TAG, "size:" + mInfo.current_bytes);
+        }
+    }
+
+
+    class PartialObserver extends DownloadContentObserver {
+
+        public PartialObserver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        public void onProcessChange(Uri uri, long cur) {
+            super.onProcessChange(uri, cur);
+            Log.d(PartialCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
+            updateProcess(uri, cur);
+        }
+
+        @Override
+        public void onStatusChange(Uri uri, int status) {
+            Log.d(PartialCallable.TAG, "状态发生改变：当前状态" + uri.toString() + "=" + status);
+            if (status == PartialInfo.STATUS_SUCCESS) {
+                mContext.getContentResolver().unregisterContentObserver(this);
+                doneNum++;
+                if (doneNum == mInfo.separate_num) {
+                    // 都完成
+                    ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_SUCCESS, mInfo);
+                    Looper looper = Looper.myLooper();
+                    if (looper != null) {
+                        mThread.cancel = false;
+                        looper.quit();
+                        try {
+                            @SuppressWarnings("JavaReflectionMemberAccess")
+                            Field field = looper.getClass().getDeclaredField("sThreadLocal");
+                            field.setAccessible(true);
+                            Object ob = field.get(looper);
+                            if (ob instanceof ThreadLocal) {
+                                ThreadLocal<?> threadLocal = (ThreadLocal<?>)ob ;
+                                threadLocal.set(null);
+                            }
+                        } catch (NoSuchFieldException e) {
+                            e.printStackTrace();
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            } else if (status == PartialInfo.STATUS_STOP
+                    || status == PartialInfo.STATUS_CANCEL) {// 停止
+                Log.d(TAG, "onStatusChange停止");
+                for (ContentObserver observer : observers) {
+                    mContext.getContentResolver().unregisterContentObserver(observer);
+
+                }
+//                ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_STOP, mInfo);
+                Looper looper = Looper.myLooper();
+                if (looper != null) {
+                    mThread.cancel = false;
+                    looper.quit();
+                    // TODO: 2020-07-20 looper不能复用，以后替换
+                    try {
+                        @SuppressWarnings("JavaReflectionMemberAccess")
+                        Field field = looper.getClass().getDeclaredField("sThreadLocal");
+                        field.setAccessible(true);
+                        Object ob = field.get(looper);
+                        if (ob instanceof ThreadLocal) {
+                            ThreadLocal<?> threadLocal = (ThreadLocal<?>)ob ;
+                            threadLocal.set(null);
+                        }
+                    } catch (NoSuchFieldException e) {
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }
     }
 }

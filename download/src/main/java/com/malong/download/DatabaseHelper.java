@@ -12,7 +12,8 @@ import android.util.Log;
  */
 public final class DatabaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "【DatabaseHelper】";
-    private boolean DEBUG = Constants.DEBUG;
+    @SuppressWarnings("PointlessBooleanExpression")
+    private boolean DEBUG = Constants.DEBUG & false;
     /** 单例. */
     private static volatile DatabaseHelper mDbOpenHelper;
 
@@ -77,7 +78,8 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
      */
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        Log.d(TAG, "onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion)     执行");
+        if (DEBUG)
+            Log.d(TAG, "onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion)     执行");
 
     }
 
@@ -98,8 +100,6 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
                     + Constants.COLUMN_DESTINATION_PATH + " TEXT, "
                     + Constants.COLUMN_FILE_NAME + " TEXT, "
                     + Constants.COLUMN_METHOD + " INTEGER, "
-
-
                     + Constants.COLUMN_MIME_TYPE + " TEXT, "
                     + Constants.COLUMN_LAST_MOD + " BIGINT, "
                     + Constants.COLUMN_STATUS + " INTEGER, "
@@ -123,6 +123,31 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
                     + Constants.COLUMN_MEDIA_SCANNED + " BOOLEAN, "
                     + Constants.COLUMN_NOTIFICATION_CLASS + " TEXT, "
                     + Constants.COLUMN_NOTIFICATION_EXTRAS + " TEXT);");
+        } catch (SQLException ex) {
+            Log.e(TAG, "下载的表download创建失败");
+            throw ex;
+        }
+
+// 担心sqlite联合查询支持可能不好，不用了
+        // 分片表   主键 父任务id 第几个分片 进度 start end header request 状态 进度通知阀值
+        try {
+            db.execSQL("DROP TABLE IF EXISTS " + Constants.DB_PARTIAL_TABLE);
+            db.execSQL("CREATE TABLE " + Constants.DB_PARTIAL_TABLE + "("
+                    + Constants._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + Constants.PARTIAL_DOWNLOAD_ID + " INTEGER, "
+                    + Constants.PARTIAL_STATUS + " INTEGER, "
+                    + Constants.PARTIAL_NUM + " INTEGER, "
+                    + Constants.PARTIAL_CURRENT_BYTES + " BIGINT, "
+                    + Constants.PARTIAL_TOTAL_BYTES + " BIGINT, "
+
+                    + Constants.PARTIAL_DOWNLOAD_URL + " TEXT, "
+                    + Constants.PARTIAL_DESTINATION_URI + " TEXT, "
+                    + Constants.PARTIAL_DESTINATION_PATH + " TEXT, "
+                    + Constants.PARTIAL_FILE_NAME + " TEXT, "
+
+
+                    + Constants.PARTIAL_START_INDEX + " BIGINT, "
+                    + Constants.PARTIAL_END_INDEX + " BIGINT);");
         } catch (SQLException ex) {
             Log.e(TAG, "下载的表download创建失败");
             throw ex;

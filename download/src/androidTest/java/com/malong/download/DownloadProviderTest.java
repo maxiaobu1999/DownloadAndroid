@@ -5,6 +5,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -33,6 +35,11 @@ public class DownloadProviderTest {
 
     @Test
     public void testUri() {
+        //[scheme:]scheme-specific-part[#fragment]
+        //[scheme:][//authority][path][?query][#fragment]
+        //[scheme:][//host:port][path][?query][#fragment]
+        // http://www.java2s.com:8080/yourpath/fileName.htm?stove=10&path=32&id=4#harvic
+        // content://com.malong.downloadsample.downloads/1
         Uri downloadUri = Utils.generateDownloadUri(mContext, 11);
         String path = downloadUri.getPath();// /downloads/11
         Log.d(TAG, "path="+path);
@@ -107,5 +114,16 @@ public class DownloadProviderTest {
                 new String[]{String.valueOf(downloadId)}// ?的值
         );
         assertEquals(1, deleteNum);// 删除一条
+    }
+
+    @Test
+    public void test() {
+        Looper.prepare();
+        Handler handler = new Handler(Looper.myLooper()){
+
+        };
+        Looper.loop();
+
+
     }
 }

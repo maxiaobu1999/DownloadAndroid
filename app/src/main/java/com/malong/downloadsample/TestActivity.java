@@ -12,7 +12,7 @@ import android.util.Log;
 import android.view.View;
 
 import com.malong.download.Constants;
-import com.malong.download.DownloadHelper;
+import com.malong.download.DownloadManager;
 import com.malong.download.DownloadInfo;
 import com.malong.download.DownloadService;
 import com.malong.download.ProviderHelper;
@@ -41,7 +41,7 @@ public class TestActivity extends AppCompatActivity {
                 super.onChange(selfChange, uri);
                 Log.d(TAG, "onChange()" + uri.toString());
                 Log.d(TAG, "onChange()queryProcess=" + ProviderHelper.queryProcess(mContext,uri));
-                Log.d(TAG, "onChange():queryStatus=" + DownloadHelper.queryStatus(mContext,uri));
+                Log.d(TAG, "onChange():queryStatus=" + DownloadManager.queryStatus(mContext,uri));
             }
         };
 
@@ -64,7 +64,7 @@ public class TestActivity extends AppCompatActivity {
                 info.fileName = fileName;
                 info.method = DownloadInfo.METHOD_BREAKPOINT;
 
-                Uri uri = DownloadHelper.getInstance().download(mContext, info);
+                Uri uri = DownloadManager.getInstance().download(mContext, info);
                 getContentResolver().registerContentObserver(uri, false, mObserver);
 
 

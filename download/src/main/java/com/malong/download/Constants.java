@@ -7,12 +7,27 @@ public class Constants {
     public static final String ZHU_XIAN_NAME = "诛仙.txt";// 诛仙小说 size：4557690
     public static boolean DEBUG = true;
 
+
+    public static final String KEY_BUNDLE = "data";
+    public static final String KEY_STATUS = "status";
+    public static final String KEY_STATUS_CHANGE = "status_change";
+    public static final String KEY_PROCESS_CHANGE = "process_change";
+    public static final String KEY_PROCESS = "process";
+    public static final String KEY_ID = "id";
+    public static final String KEY_URI = "uri";
+    public static final String KEY_PARTIAL_NUM = "partial_num";
+
+
+
+
+
     /** 数据库名称 */
     public static final String DB_NAME = "downloads.db";
     /** 数据库版本 */
     public static final int DB_VERSION = 2;
     /** 数据库表名 */
     public static final String DB_TABLE = "downloads";
+    public static final String DB_PARTIAL_TABLE = "partial";
 
     /*==============================表列名BEGIN========================*/
     /** 主键自增 INTEGER */
@@ -78,5 +93,36 @@ public class Constants {
     public static final String COLUMN_NOTIFICATION_CLASS = "notification_class";
     /** 跳转携带的数据  TEXT */
     public static final String COLUMN_NOTIFICATION_EXTRAS = "notification_extras";
+
+
+
+
+    /** 外键  download表的ID INTEGER */
+    public static final String PARTIAL_DOWNLOAD_ID= "download_id";
+    /** 下载状态 暂停正在下载 INTEGER */
+    public static final String PARTIAL_STATUS = "status";
+    /** 分片索引 INTEGER */
+    public static final String PARTIAL_NUM= "num";
+    /** 当前进度 BIGINT */
+    public static final String PARTIAL_CURRENT_BYTES= "current_bytes";
+    /** 分片总大小 BIGINT */
+    public static final String PARTIAL_TOTAL_BYTES = "total_bytes";
+
+    /** 分片起点 BIGINT */
+    public static final String PARTIAL_START_INDEX= "start_index";
+    /** 分片终点点 BIGINT */
+    public static final String PARTIAL_END_INDEX= "end_index";
+
+    /** 下载地址 TEXT 必须*/
+    public static final String PARTIAL_DOWNLOAD_URL = "download_url";
+    /** 保存地址 uri TEXT nullable*/
+    public static final String PARTIAL_DESTINATION_URI = "destination_uri";
+    /** 保存地址 文件路径（不一定有，ROM P 媒体文件夹可能获取不到文件的实际路径） TEXT */
+    public static final String PARTIAL_DESTINATION_PATH = "destination_path";
+    /** 文件的名称，没有起一个 TEXT 必须*/
+    public static final String PARTIAL_FILE_NAME = "file_name";
+
+
+
 
 }

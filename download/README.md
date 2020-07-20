@@ -259,6 +259,8 @@ https://www.cnblogs.com/yuanchongjie/p/4448359.html
 # 观察者
 contentObserver
 ## URI
+content://com.malong.download.test.downloads/5?process=5#process_change
+
 Authority：授权信息，用以区别不同的ContentProvider；
 Path：表名，用以区分ContentProvider中不同的数据表；
 Id：Id号，用以区别表中的不同数据；

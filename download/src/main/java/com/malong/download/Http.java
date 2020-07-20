@@ -3,8 +3,6 @@ package com.malong.download;
 import android.content.Context;
 import android.util.Log;
 
-import com.malong.download.utils.Closeables;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -14,26 +12,23 @@ import java.net.URL;
 
 public class Http {
     public static final String TAG = "【Http】";
-    DownloadInfo mInfo;
+    @SuppressWarnings("PointlessBooleanExpression")
+    private static boolean DEBUG = Constants.DEBUG & true;
+    HttpInfo mInfo;
     Context mContext;
     private HttpURLConnection conn;
     /** 下载的长度 */
-    private int contentLength = -1;
+    private long contentLength;
     /** 状态码 */
     private int code = -1;
-    long start = 0;
-    long end = 0;
-    public Http(Context context, DownloadInfo info) {
+    /** 响应头ETag : "4df4d61142e773a16769473cf2654b71" */
+    private String mETag;
+//    long start = 0;
+//    long end = 0;
+
+    public Http(Context context, HttpInfo info) {
         mContext = context;
         mInfo = info;
-    }
-
-    public Http(Context context, DownloadInfo info,long start,long end) {
-        mContext = context;
-        mInfo = info;
-        this.start = start;
-        this.end = end;
-
     }
 
     public InputStream getDownloadStream() {
@@ -46,6 +41,7 @@ public class Http {
             conn.setReadTimeout(10000); // SUPPRESS CHECKSTYLE
 
 
+            // 续传
             if (mInfo.method == DownloadInfo.METHOD_BREAKPOINT
                     && mInfo.current_bytes != 0
                     && mInfo.total_bytes > mInfo.current_bytes) {
@@ -54,23 +50,24 @@ public class Http {
                 conn.setRequestProperty("Range", range);// 指定下载文件的指定位置
             }
 
+            // 分片
             if (mInfo.method == DownloadInfo.METHOD_PARTIAL) {
-                String range = "bytes=" + start+ "-" + end;
-                Log.d(TAG,"range="+ range);
+                String range = "bytes=" + mInfo.start_index + "-" + mInfo.end_index;
+                if (DEBUG) Log.d(TAG, "range=" + range);
                 conn.setRequestProperty("Range", range);// 指定下载文件的指定位置
             }
 
             conn.connect();
+            code = conn.getResponseCode();
+            if (BuildConfig.DEBUG) Log.d(TAG, "conn.getResponseCode():" + code);
             if (conn.getResponseCode() == 200/*HttpStatus.SC_OK*/
                     || conn.getResponseCode() == 206) {// 206大文件拆分状态码。腾讯云断点续传时的返回码
                 contentLength = conn.getContentLength();
-                Log.d(TAG, "contentLength:" + contentLength);
+                if (DEBUG) Log.d(TAG, "contentLength:" + contentLength);
+                mETag = conn.getHeaderField("ETag").replace("\"", "");// 获取响应
+                Log.d(TAG, "+++++" + mETag);
                 is = conn.getInputStream();
-            } else {
-                Log.d(TAG, "conn.getResponseCode():" + conn.getResponseCode());
-                Log.d(TAG, conn.getResponseMessage());
             }
-
         } catch (InterruptedIOException | OutOfMemoryError | MalformedURLException e) {
             e.printStackTrace();
         } catch (Exception e) {
@@ -83,9 +80,12 @@ public class Http {
         return contentLength;
     }
 
+    public String getETag() {
+        return mETag;
+    }
+
 
     public long fetchLength() {
-        long length = -1;
         HttpURLConnection conn = null;
         try {
             URL imageUrl = new URL(mInfo.download_url);
@@ -95,10 +95,11 @@ public class Http {
             conn.connect();
             if (conn.getResponseCode() == 200/*HttpStatus.SC_OK*/
                     || conn.getResponseCode() == 206) {// 206大文件拆分状态码。腾讯云断点续传时的返回码
-                length = conn.getContentLength();
+                contentLength = conn.getContentLength();
+                mETag = conn.getHeaderField("ETag").replace("\"", "");// 获取响应
             } else {
-                Log.d(TAG, "conn.getResponseCode():" + conn.getResponseCode());
-                Log.d(TAG, conn.getResponseMessage());
+                if (DEBUG) Log.d(TAG, "conn.getResponseCode():" + conn.getResponseCode());
+                if (DEBUG) Log.d(TAG, conn.getResponseMessage());
             }
 
         } catch (MalformedURLException e) {
@@ -109,7 +110,7 @@ public class Http {
             if (conn != null)
                 conn.disconnect();
         }
-        return length;
+        return contentLength;
 
     }
 
@@ -123,4 +124,6 @@ public class Http {
             conn.disconnect();
         }
     }
+
+
 }

@@ -18,7 +18,7 @@ public class Builder {
 
         mInfo.status = DownloadInfo.STATUS_PENDING;
         mInfo.method = DownloadInfo.METHOD_COMMON;
-        mInfo.total_bytes = -1;
+        mInfo.total_bytes = 0;
         mInfo.current_bytes = 0;
     }
 

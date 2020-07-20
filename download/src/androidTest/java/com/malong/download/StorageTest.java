@@ -1,15 +1,16 @@
 package com.malong.download;
 
 import android.Manifest;
-import android.app.DownloadManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.UriMatcher;
 import android.content.res.AssetFileDescriptor;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -20,6 +21,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
 import com.malong.download.utils.FileUtils;
+import com.malong.download.utils.Utils;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -31,8 +33,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 // 存储测试
 //adb shell cmd appops set your-package-name android:legacy_storage allow
 // 要禁用兼容模式，请在 Android Q 上卸载并重新安装您的应用，或在终端窗口中运行以下命令：
@@ -77,11 +84,11 @@ public class StorageTest {
         builder.setFileName(fileName);
         DownloadInfo info = builder.build();
 
-        DownloadHelper manager = DownloadHelper.getInstance();
+        DownloadManager manager = DownloadManager.getInstance();
         Uri uri = manager.download(mContext, info);
         ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
             @Override
-            public void onStatusChange(int status) {
+            public void onStatusChange(Uri uri, int status) {
                 Log.d(TAG, "状态发生改变：当前状态=" + status);
             }
         };
@@ -149,9 +156,9 @@ public class StorageTest {
     public void checkUri() {
         Uri uri = Uri.parse("content://media/external/images/media/" + "543");
         ContentResolver resolver = mContext.getContentResolver();
-        ParcelFileDescriptor w =null;
+        ParcelFileDescriptor w = null;
         try {
-            w=resolver.openFileDescriptor(uri, "w");
+            w = resolver.openFileDescriptor(uri, "w");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -159,7 +166,7 @@ public class StorageTest {
         assert w != null;
 
 
-         uri = Uri.parse("content://media/external/images/media" + "543123123");
+        uri = Uri.parse("content://media/external/images/media" + "543123123");
         try {
             w = resolver.openFileDescriptor(uri, "w");
         } catch (FileNotFoundException e) {
@@ -179,7 +186,7 @@ public class StorageTest {
                 + MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString());
 //        MediaStore.Images.Media.EXTERNAL_CONTENT_URI.buildUpon()
 //                .appendPath(String.valueOf(id)).build().toString();
-
+// TODO: 2020-07-17  
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.DISPLAY_NAME, "IMG1024.JPG");
         values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
@@ -193,14 +200,22 @@ public class StorageTest {
         Uri item = resolver.insert(collection, values);
 
 
-
-
         // try括号内的资源会在try语句结束后自动释放，前提是这些可关闭的资源必须实现 java.lang.AutoCloseable 接口。
         try (ParcelFileDescriptor pfd = resolver
                 .openFileDescriptor(item, "w", null)) {
             DownloadInfo info = new Builder().setDownloadUrl(Constants.BASE_URL + Constants.IMAGE_NAME)
                     .setDescription_uri(item).setFileName("IMG1024.JPG").build();
-            Http http = new Http(mContext, info);
+
+            HttpInfo httpInfo = new HttpInfo();
+            httpInfo.download_url = info.download_url;
+            httpInfo.destination_uri = info.destination_uri;
+            httpInfo.destination_path = info.destination_path;
+            httpInfo.fileName = info.fileName;
+//            httpInfo.status = info.status;
+            httpInfo.method = DownloadInfo.METHOD_PARTIAL;
+            httpInfo.total_bytes = info.total_bytes;
+            httpInfo.current_bytes = info.current_bytes;
+            Http http = new Http(mContext, httpInfo);
             InputStream inputStream = http.getDownloadStream();
             FileOutputStream outputStream = new FileOutputStream(pfd.getFileDescriptor());
             long l = FileUtils.copyStream(inputStream, outputStream);
@@ -284,4 +299,74 @@ public class StorageTest {
         insertUri = resolver.insert(external, values);
         return insertUri;
     }
+
+    @Test
+    public void testUriMatch() {
+        UriMatcher URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
+//        URI_MATCHER.addURI(AUTHORITY, TABLE_B, TABLE_B_MSG);
+        URI_MATCHER.addURI(Utils.getDownloadAuthority(mContext), "/*", DownloadProvider.URI_MATCHER_DOWNLOAD);
+        URI_MATCHER.addURI(Utils.getDownloadAuthority(mContext), "/", DownloadProvider.URI_MATCHER_DOWNLOAD);
+        URI_MATCHER.addURI(Utils.getPartialAuthority(mContext), "/", DownloadProvider.URI_MATCHER_PARTIAL);
+
+        String uri = "content://com.malong.download.test.downloads";
+        String uri2 = "content://com.malong.download.test.downloads/1";
+        int match = URI_MATCHER.match(Uri.parse(uri));
+        int match2 = URI_MATCHER.match(Uri.parse(uri2));
+        Log.d(TAG, "match:" + match);
+        Log.d(TAG, "match2:" + match2);
+    }
+
+
+    @Test
+    public void testFutureTask() throws InterruptedException {
+        Callable<Integer> callable = new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                Log.d(TAG, "11:" + 1);
+//                Thread.sleep(500);
+                int num = Integer.MAX_VALUE;
+                for (long i = 0; i < num; i++) {
+//                    Log.d(TAG, "i:" + i);
+                    Log.d(TAG, "isInterrupted():" + Thread.currentThread().isInterrupted());
+                    if (Thread.currentThread().isInterrupted()) {
+                        break;
+                    }
+//                    Log.d(TAG, "22:" + 2);
+                }
+
+
+                Log.d(TAG, "33:" + 3);
+                return 0;
+            }
+        };
+
+        FutureTask<Integer> task = new FutureTask<>(callable);
+        ExecutorService pool = Executors.newFixedThreadPool(3);
+        pool.execute(task);
+        Thread.sleep(20);
+
+        task.cancel(true);
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        countDownLatch.await();
+
+
+    }
+
+    @Test
+    public void testLock() throws NoSuchFieldException, IllegalAccessException {
+        Looper.prepare();
+        Looper looper = Looper.myLooper();
+        Thread mThread = Thread.currentThread();
+        Field field = looper.getClass().getDeclaredField("sThreadLocal");
+        field.setAccessible(true);
+        ThreadLocal threadLocal =(ThreadLocal) field.get(looper);
+        Log.d(TAG, "threadLocal.get():" + threadLocal.get());
+        threadLocal.set(null);
+
+        Looper.prepare();
+
+
+    }
+
 }

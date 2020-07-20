@@ -4,9 +4,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -18,12 +20,26 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.PipedOutputStream;
-import java.io.RandomAccessFile;
-import java.net.URI;
 
 public class Utils {
+    public static final String TAG = "【Utils】";
+
+    public static String getPartialAuthority(Context context) {
+        return context.getPackageName() + ".partial";
+
+    }
+
+    /** content://com.malong.downloadsample.downloads */
+    public static Uri getPartialBaseUri(Context context) {
+        return Uri.parse("content://" + context.getPackageName() + ".partial");
+
+    }
+
+    public static Uri generatePartialBUri(Context context, int _id) {
+        return Uri.parse("content://" + context.getPackageName() + ".partial/" + _id);
+    }
+
+
     public static String getDownloadBaseUriString(Context context) {
         return "content://" + context.getPackageName() + ".downloads";
 
@@ -39,6 +55,7 @@ public class Utils {
         return context.getPackageName() + ".downloads";
 
     }
+
 
     public static Uri generateDownloadUri(Context context, int _id) {
         return Uri.parse("content://" + context.getPackageName() + ".downloads/" + _id);
@@ -61,8 +78,21 @@ public class Utils {
         return id;
     }
 
-    public static void startdownloadService(Context context) {
+    public static void startDownloadService(Context context, Bundle bundle) {
+        if (Constants.DEBUG) {
+            int status=0;
+            int id=0;
+            String uri = "";
+            if (bundle != null) {
+                status = bundle.getInt(Constants.KEY_STATUS, -1);
+                id = bundle.getInt(Constants.KEY_ID, -1);
+                uri = bundle.getString(Constants.KEY_URI, "");
+
+            }
+            Log.d(TAG, "startDownloadService调用：status=" + status + "；id=" + id + "uri=" + uri);
+        }
         Intent intent = new Intent();
+        intent.putExtra(Constants.KEY_BUNDLE, bundle);
         intent.setClass(context, DownloadService.class);
         context.startService(intent);
     }
@@ -113,7 +143,8 @@ public class Utils {
             Uri description_uri = Uri.parse(info.destination_uri);
             ContentValues values = new ContentValues();
             values.put(MediaStore.Images.Media.DISPLAY_NAME, info.fileName);
-            values.put(MediaStore.Images.Media.MIME_TYPE, info.mime_type);
+            values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+//            values.put(MediaStore.Images.Media.MIME_TYPE, info.mime_type);
 //            values.put(MediaStore.Images.Media.IS_PENDING, 1);// 让其他应用不可见
             Uri item = context.getContentResolver().insert(description_uri, values);
             return getOutputStream(context, item);

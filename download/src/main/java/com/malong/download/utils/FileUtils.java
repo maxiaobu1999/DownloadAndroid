@@ -6,14 +6,22 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.malong.download.Constants;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class FileUtils {
     public static final String TAG = "【FileUtils】";
+    /** File buffer stream size */
+    public static final int FILE_STREAM_BUFFER_SIZE = 8192;
     /** invalid index */
     public static int INVALID_INDEX = -1;
     /** increament one step */
@@ -102,7 +110,7 @@ public class FileUtils {
      * @param fileName 文件全路径
      * @return if true 存在
      */
-    public static boolean isExistFile(String fileName) {
+    public static boolean checkFileExist(String fileName) {
         return !TextUtils.isEmpty(fileName) && new File(fileName).exists();
     }
 
@@ -143,6 +151,22 @@ public class FileUtils {
 
         return isDeletedAll;
     }
+    /**
+     * 删除指定文件
+     *
+     * @param path 文件路径
+     * @return 是否成功删除
+     */
+    public static boolean deleteFile(String path) {
+        if (TextUtils.isEmpty(path)) {
+            return false;
+        }
+        File file = new File(path);
+        if (file.exists()) {
+            return deleteFile(file);
+        }
+        return false;
+    }
 
     /**
      * 从url从抽取文件名
@@ -173,5 +197,74 @@ public class FileUtils {
 
     public static boolean checkFileExist(String dir, String filename) {
         return !TextUtils.isEmpty(dir + filename) && new File(dir + filename).exists();
+    }
+
+    /**
+     * 计算文件Md5 32位 十六进制字符串，单个字节小于0xf，高位补0
+     * ETag : "66cbdb8598353b2cd579e408cf42d52f"
+     * @param file 文件
+     * @param upperCase true：大写， false 小写字符串
+     * @return Md5 32位 十六进制字符串，单个字节小于0xf，高位补0
+     */
+    public static String toMd5(File file, boolean upperCase) {
+        InputStream is = null;
+        try {
+            MessageDigest algorithm = MessageDigest.getInstance("MD5");
+            algorithm.reset();
+            is = new FileInputStream(file);
+            byte[] buffer = new byte[FILE_STREAM_BUFFER_SIZE];
+            int read = 0;
+            while ((read = is.read(buffer)) > 0) {
+                algorithm.update(buffer, 0, read);
+            }
+            return toHexString(algorithm.digest(), "", upperCase);
+        } catch (NoSuchAlgorithmException e) {
+            if (Constants.DEBUG) {
+                e.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            if (Constants.DEBUG) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            if (Constants.DEBUG) {
+                e.printStackTrace();
+            }
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    if (Constants.DEBUG) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+    /**
+     * 把二进制byte数组生成十六进制字符串，单个字节小于0xf，高位补0。
+     *
+     * @param bytes 输入
+     * @param separator 分割线
+     * @param upperCase true：大写， false 小写字符串
+     * @return 把二进制byte数组生成十六进制字符串，单个字节小于0xf，高位补0。
+     */
+    @SuppressWarnings("SameParameterValue")
+    private static String toHexString(byte[] bytes, String separator, boolean upperCase) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            String str = Integer.toHexString(0xFF & b); // SUPPRESS CHECKSTYLE
+            if (upperCase) {
+                str = str.toUpperCase();
+            }
+            if (str.length() == 1) {
+                hexString.append("0");
+            }
+            hexString.append(str).append(separator);
+        }
+        return hexString.toString();
     }
 }

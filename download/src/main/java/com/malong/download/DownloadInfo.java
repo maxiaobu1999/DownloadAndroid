@@ -22,6 +22,8 @@ public class DownloadInfo {
     public static final int STATUS_SUCCESS = 200;
     /** 下载失败 */
     public static final int STATUS_FAIL = 300;
+    /** 取消 删除记录 保留文件 */
+    public static final int STATUS_CANCEL = 999;
 
 //    /**
 //     * This request couldn't be parsed. This is also used when processing
@@ -120,7 +122,7 @@ public class DownloadInfo {
     public static final int COMPLETE_NOT_SAVE = 1;
 
 
-    /** 下载方式：删除旧文件，重新下载 */
+    /** 下载方式：删除旧文件，重新下载 。服务端不支持局部下载时使用 */
     public static final int METHOD_COMMON = 0;
     /** 下载方式：断点续传 */
     public static final int METHOD_BREAKPOINT = 1;
@@ -152,6 +154,9 @@ public class DownloadInfo {
     public long current_bytes;
     /** 下载数据的MIME类型 TEXT */
     public String mime_type;
+
+    /** 缓存校验md5 TEXT */
+    public String etag;
 
     /** 分片数量 */
     public int separate_num;
@@ -191,6 +196,8 @@ public class DownloadInfo {
                 info.method = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_METHOD));
             if (cursor.getColumnIndex(Constants.COLUMN_HEADER) != -1)
                 info.header = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_HEADER));
+            if (cursor.getColumnIndex(Constants.COLUMN_ETAG) != -1)
+                info.etag = cursor.getString(cursor.getColumnIndexOrThrow(Constants.COLUMN_ETAG));
             if (cursor.getColumnIndex(Constants.COLUMN_TOTAL_BYTES) != -1)
                 info.total_bytes = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_TOTAL_BYTES));
             if (cursor.getColumnIndex(Constants.COLUMN_CURRENT_BYTES) != -1)
@@ -204,7 +211,8 @@ public class DownloadInfo {
     }
 
 
-    public static ContentValues info2ContentValues(DownloadInfo info) {
+    public  ContentValues info2ContentValues() {
+        DownloadInfo info = this;
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_STATUS, info.status);
         values.put(Constants.COLUMN_DOWNLOAD_URL, info.download_url);
@@ -221,12 +229,13 @@ public class DownloadInfo {
             values.put(Constants.COLUMN_CURRENT_BYTES, info.current_bytes);
         if (!TextUtils.isEmpty(info.mime_type))
             values.put(Constants.COLUMN_MIME_TYPE, info.mime_type);
+        if (!TextUtils.isEmpty(info.etag))
+            values.put(Constants.COLUMN_ETAG, info.etag);
 
         values.put(Constants.COLUMN_SEPARATE_NUM, info.separate_num);
 
         return values;
     }
-
 
 
 }

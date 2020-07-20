@@ -19,48 +19,81 @@ public class DownloadContentObserver extends ContentObserver {
      * 构造函数
      *
      * @param context context
-     * @param uri     URI content://com.norman.malong.downloads/my_downloads/3
      */
-    public DownloadContentObserver(Context context, Uri uri) {
+    //@param uri     URI content://com.norman.malong.downloads/my_downloads/3
+    public DownloadContentObserver(Context context,Uri uri) {
         super(new Handler(Looper.getMainLooper()));
         mContext = context;
 //        DownloadInfo downloadInfo = DownloadHelper.queryDownloadInfo(mContext, uri);
 //        mLastState = DownloadInfo.STATUS_PENDING;
-        if (DEBUG) {
-            Log.w(TAG, "new DownloadObserver(" + uri + ")");
-        }
+    }
+
+    public DownloadContentObserver(Handler handler) {
+        super(handler);
     }
 
     @Override
     public void onChange(boolean selfChange, Uri uri) {
         super.onChange(selfChange, uri);
-        DownloadInfo downloadInfo = DownloadHelper.queryDownloadInfo(mContext, uri);
-        if (downloadInfo == null) {
-            return;
-        }
-        if (DEBUG) {
-            Log.d(TAG, "downloadInfo.status:" + downloadInfo.status);
-        }
-        if (downloadInfo.status == DownloadInfo.STATUS_RUNNING) {
-            if (DEBUG) {
-                Log.d(TAG, "当前进度=" + downloadInfo.current_bytes);
+        if (DEBUG) Log.d(TAG, "onChange():" + uri.toString());
+        if (Constants.KEY_PROCESS_CHANGE.equals(uri.getFragment())) {
+            // 进度改变
+            try {
+                @SuppressWarnings("ConstantConditions")
+                long current_bytes = Long.parseLong(
+                        uri.getQueryParameter(Constants.KEY_PROCESS));
+                onProcessChange(uri,current_bytes);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            onProcessChange(downloadInfo.current_bytes);
-        }
-        if (downloadInfo.status != mLastState) {
-            if (DEBUG) {
-                Log.d(TAG, "状态发生改变：当前状态=" + downloadInfo.status);
+
+        } else if (Constants.KEY_STATUS_CHANGE.equals(uri.getFragment())) {
+            // 状态改变
+            try {
+                @SuppressWarnings("ConstantConditions")
+                int status = Integer.parseInt(uri.getQueryParameter(Constants.KEY_STATUS));
+                if (status != mLastState) {
+                    if (DEBUG) {
+                        Log.d(TAG, "状态发生改变：当前状态=" + status);
+                    }
+                    mLastState = status;
+                    onStatusChange(uri,status);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            mLastState = downloadInfo.status;
-            onStatusChange(downloadInfo.status);
         }
+
+
+//
+//
+//        DownloadInfo downloadInfo = DownloadHelper.queryDownloadInfo(mContext, uri);
+//        if (downloadInfo == null) {
+//            return;
+//        }
+//        if (DEBUG) {
+//            Log.d(TAG, "downloadInfo.status:" + downloadInfo.status);
+//        }
+//        if (downloadInfo.status == DownloadInfo.STATUS_RUNNING) {
+//            if (DEBUG) {
+//                Log.d(TAG, "当前进度=" + downloadInfo.current_bytes);
+//            }
+//            onProcessChange(downloadInfo.current_bytes);
+//        }
+//        if (downloadInfo.status != mLastState) {
+//            if (DEBUG) {
+//                Log.d(TAG, "状态发生改变：当前状态=" + downloadInfo.status);
+//            }
+//            mLastState = downloadInfo.status;
+//            onStatusChange(downloadInfo.status);
+//        }
     }
 
-    public void onProcessChange(long cur) {
+    public void onProcessChange(Uri uri,long cur) {
 
     }
 
-    public void onStatusChange(int status) {
+    public void onStatusChange(Uri uri,int status) {
 
     }
 
