@@ -4,7 +4,6 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -53,7 +52,6 @@ public class DownloadService extends Service {
     /** 任务集合 <下载id,下载任务> */
     private HashMap<Integer, FutureTask> mTaskMap = new HashMap<>();
     private HashMap<Integer, FutureTask> mPartialTaskMap = new HashMap<>();
-    private ContentObserver mObserver;
 
     public DownloadService() {
     }
@@ -75,7 +73,7 @@ public class DownloadService extends Service {
                 return new CancelableThread(r);
             }
         };
-        mExecutor = Executors.newFixedThreadPool(3,threadFactory);
+        mExecutor = Executors.newFixedThreadPool(2, threadFactory);
     }
 
     @Override
@@ -142,17 +140,7 @@ public class DownloadService extends Service {
             if (info == null) {// ID无效
                 return;
             }
-            // 停止分片任务,
-            List<PartialInfo> partialInfoList = PartialProviderHelper
-                    .queryPartialInfoList(mContext, info.id);
-            for (PartialInfo partialInfo : partialInfoList) {
-                FutureTask task = mPartialTaskMap.get(partialInfo.id);
-                if (task != null) {
-                    boolean cancel = task.cancel(true);
-                    if (DEBUG) Log.d(TAG, "partialInfo.id:停止" + partialInfo.id + cancel);
-                }
-                PartialProviderHelper.updatePartialStutas(mContext, PartialInfo.STATUS_STOP, partialInfo);
-            }
+
 
             // 停止主任务
             FutureTask task = mTaskMap.get(info.id);
@@ -223,6 +211,14 @@ public class DownloadService extends Service {
                 mPartialTaskMap.put(info.id, futureTask);
                 mExecutor.execute(futureTask);
             }
+        } else if (status == PartialInfo.STATUS_STOP) {
+            // 停止分片任务,
+            PartialInfo partialInfo = PartialProviderHelper.queryPartialInfo(mContext, id);
+            FutureTask task = mPartialTaskMap.get(partialInfo.id);
+            if (task != null) {
+                boolean cancel = task.cancel(true);
+                if (DEBUG) Log.d(TAG, "partialInfo.id:停止" + partialInfo.id + cancel);
+            }
         } else if (status == PartialInfo.STATUS_CANCEL) {
             // 停止分片任务,
             List<PartialInfo> partialInfoList = PartialProviderHelper
@@ -240,8 +236,8 @@ public class DownloadService extends Service {
     // 添加 删除 暂停 继续下载
     private void update(@Nullable Intent intent) {
         if (Constants.DEBUG) {
-            int status=0;
-            int id=0;
+            int status = 0;
+            int id = 0;
             String uri = "";
             Bundle bundle = intent.getBundleExtra(Constants.KEY_BUNDLE);
             if (bundle != null) {

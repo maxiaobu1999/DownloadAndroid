@@ -85,6 +85,11 @@ public class PartialProviderHelper {
     // 更新状态
     public static int updatePartialStutas(Context context, int status, PartialInfo info) {
         if (DEBUG) Log.d(TAG, "ID:" + info.id + ";状态" + info.status + "变为" + status);
+//        // success 2 stop 忽略
+//        if (info.status == PartialInfo.STATUS_SUCCESS && status == PartialInfo.STATUS_STOP) {
+//            return 0 ;
+//        }
+
         Uri uri = Utils.generatePartialBUri(context, info.id);
         info.status = status;
         ContentValues values = new ContentValues();

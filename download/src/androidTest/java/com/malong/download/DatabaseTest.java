@@ -4,7 +4,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Looper;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -16,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 
 import static junit.framework.TestCase.assertEquals;
+
 // adb uninstall com.malong.download.test
 @RunWith(AndroidJUnit4.class)
 @FixMethodOrder(MethodSorters.JVM)// 按照JVM得到的方法顺序，也就是代码中定义的方法顺序.保证用例按循序执行
@@ -86,9 +86,9 @@ public class DatabaseTest {
         cursor.moveToFirst();
         do {
             assertEquals(uri, cursor.getString(0));
-            assertEquals(downloadUrl,cursor.getString(1));
-            assertEquals(fileName,cursor.getString(2));
-            assertEquals(data,cursor.getString(3));
+            assertEquals(downloadUrl, cursor.getString(1));
+            assertEquals(fileName, cursor.getString(2));
+            assertEquals(data, cursor.getString(3));
         } while (cursor.moveToNext());
 
         // 删
@@ -96,7 +96,7 @@ public class DatabaseTest {
                 "_id=? and " + Constants.COLUMN_FILE_NAME + "=?",// 约束条件
                 new String[]{String.valueOf(insertId), "wenjian"}// ?的值
         );
-        assertEquals(1,deleteNum);// 删除一条
+        assertEquals(1, deleteNum);// 删除一条
     }
 
 }

@@ -9,7 +9,6 @@ import com.malong.download.Constants;
 import com.malong.download.DownloadInfo;
 import com.malong.download.Http;
 import com.malong.download.HttpInfo;
-import com.malong.download.ProviderHelper;
 import com.malong.download.partial.PartialInfo;
 import com.malong.download.partial.PartialProviderHelper;
 import com.malong.download.utils.Closeables;
@@ -57,6 +56,12 @@ public class SubCallable implements Callable<PartialInfo> {
         httpInfo.current_bytes = mInfo.current_bytes;
         httpInfo.start_index = mInfo.start_index + mInfo.current_bytes;// 续传
         httpInfo.end_index = mInfo.end_index;
+        // 已经下载完的
+        if (httpInfo.start_index >= httpInfo.end_index) {
+            mInfo.status = DownloadInfo.STATUS_SUCCESS;
+            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
+            return mInfo;
+        }
         Http http = new Http(mContext, httpInfo);
 
         InputStream is = null;
@@ -69,8 +74,9 @@ public class SubCallable implements Callable<PartialInfo> {
                 PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
                 return mInfo;
             }
+            Log.d(TAG, "++++++++++++http.getContentLength():" + http.getContentLength());
             raf = new RandomAccessFile(destFile, "rw");
-            raf.seek( mInfo.start_index + mInfo.current_bytes);
+            raf.seek(mInfo.start_index + mInfo.current_bytes);
             final int defaultBufferSize = 1024 * 3;
             byte[] buf = new byte[defaultBufferSize];
             long size = mInfo.current_bytes;
@@ -86,6 +92,7 @@ public class SubCallable implements Callable<PartialInfo> {
                 raf.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
+                Log.d(TAG, "size:" + size);
                 PartialProviderHelper.updatePartialProcess(mContext, mInfo);
             }
             // 下载完成

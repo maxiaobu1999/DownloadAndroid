@@ -10,11 +10,14 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.malong.download.partial.PartialInfo;
+import com.malong.download.partial.PartialProviderHelper;
 import com.malong.download.utils.Closeables;
 import com.malong.download.utils.FileUtils;
 import com.malong.download.utils.Utils;
 
 import java.util.List;
+import java.util.concurrent.FutureTask;
 
 public class DownloadManager {
     public static final String TAG = "【DownloadManager】";
@@ -99,6 +102,13 @@ public class DownloadManager {
             Log.d(TAG, "stop（）调用");
         }
         ProviderHelper.updateStutas(context, DownloadInfo.STATUS_STOP, info);
+        // 变更分片状态
+        List<PartialInfo> partialInfoList = PartialProviderHelper
+                .queryPartialInfoList(context, info.id);
+        for (PartialInfo partialInfo : partialInfoList) {
+            PartialProviderHelper.updatePartialStutas(
+                    context, PartialInfo.STATUS_STOP, partialInfo);
+        }
     }
 
     // 继续下载

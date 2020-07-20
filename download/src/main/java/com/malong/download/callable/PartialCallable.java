@@ -178,25 +178,7 @@ public class PartialCallable implements Callable<DownloadInfo> {
                 if (doneNum == mInfo.separate_num) {
                     // 都完成
                     ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_SUCCESS, mInfo);
-                    Looper looper = Looper.myLooper();
-                    if (looper != null) {
-                        mThread.cancel = false;
-                        looper.quit();
-                        try {
-                            @SuppressWarnings("JavaReflectionMemberAccess")
-                            Field field = looper.getClass().getDeclaredField("sThreadLocal");
-                            field.setAccessible(true);
-                            Object ob = field.get(looper);
-                            if (ob instanceof ThreadLocal) {
-                                ThreadLocal<?> threadLocal = (ThreadLocal<?>)ob ;
-                                threadLocal.set(null);
-                            }
-                        } catch (NoSuchFieldException e) {
-                            e.printStackTrace();
-                        } catch (IllegalAccessException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                    quitLooper();
                 }
             } else if (status == PartialInfo.STATUS_STOP
                     || status == PartialInfo.STATUS_CANCEL) {// 停止
@@ -206,27 +188,37 @@ public class PartialCallable implements Callable<DownloadInfo> {
 
                 }
 //                ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_STOP, mInfo);
-                Looper looper = Looper.myLooper();
-                if (looper != null) {
-                    mThread.cancel = false;
-                    looper.quit();
-                    // TODO: 2020-07-20 looper不能复用，以后替换
-                    try {
-                        @SuppressWarnings("JavaReflectionMemberAccess")
-                        Field field = looper.getClass().getDeclaredField("sThreadLocal");
-                        field.setAccessible(true);
-                        Object ob = field.get(looper);
-                        if (ob instanceof ThreadLocal) {
-                            ThreadLocal<?> threadLocal = (ThreadLocal<?>)ob ;
-                            threadLocal.set(null);
-                        }
-                    } catch (NoSuchFieldException e) {
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    }
+                quitLooper();
+            }
+        }
+    }
 
+    private void quitLooper() {
+        Looper looper = Looper.myLooper();
+        if (looper != null) {
+            mThread.cancel = false;
+            looper.quit();
+            // TODO: 2020-07-20 looper不能复用，这么应该会有坑，看看有什么问题在说
+            try {
+                // 清除ThreadLocal里的looper，否则再次prepare会报错。tip这里不会抛异常，但是会直接结束任务
+                @SuppressWarnings("JavaReflectionMemberAccess")
+                Field field = looper.getClass().getDeclaredField("sThreadLocal");
+                field.setAccessible(true);
+                Object ob = field.get(looper);
+                if (ob instanceof ThreadLocal) {
+                    ThreadLocal<?> threadLocal = (ThreadLocal<?>)ob ;
+                    threadLocal.set(null);
                 }
+
+//                // 防止引用消息队列，应该没用，写着玩吧。
+//                @SuppressWarnings("JavaReflectionMemberAccess")
+//                Field fieldThread = looper.getClass().getDeclaredField("mThread");
+//                fieldThread.setAccessible(true);
+//                fieldThread.set(looper,null);
+            } catch (NoSuchFieldException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
             }
         }
     }
