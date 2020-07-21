@@ -8,6 +8,7 @@ import android.content.UriMatcher;
 import android.content.res.AssetFileDescriptor;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.database.CursorIndexOutOfBoundsException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Looper;
@@ -23,6 +24,7 @@ import androidx.test.rule.GrantPermissionRule;
 import com.malong.download.utils.FileUtils;
 import com.malong.download.utils.Utils;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -368,5 +370,33 @@ public class StorageTest {
 
 
     }
+
+
+    @Test
+    public void testInsert() throws NoSuchFieldException, IllegalAccessException {
+        String downloadUrl = Constants.BASE_URL + Constants.IMAGE_NAME;
+        // /data/user/0/com.malong.downloadsample/
+        String filePath = mContext.getFilesDir().getAbsolutePath();
+        String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
+
+        Builder builder = new Builder();
+        builder.setDownloadUrl(downloadUrl);
+        builder.setDescription_path(filePath);
+        Assert.assertNotNull(fileName);
+        builder.setFileName(fileName);
+        builder.setMethod(DownloadInfo.METHOD_PARTIAL);
+        builder.setSeparate_num(4);
+        final DownloadInfo info = builder.build();
+
+        Uri insert = ProviderHelper.insert(mContext, info);
+        int downloadId = Utils.getDownloadId(mContext, insert);
+        info.id = downloadId;
+        info.download_url = "123";
+        Uri insert1 = ProviderHelper.insert(mContext, info);
+        Assert.assertTrue(TextUtils.equals(insert.toString(),insert1.toString()));
+
+
+    }
+
 
 }

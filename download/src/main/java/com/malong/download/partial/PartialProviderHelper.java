@@ -1,10 +1,11 @@
 package com.malong.download.partial;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.text.TextUtils;
+import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -107,6 +108,36 @@ public class PartialProviderHelper {
                 Constants._ID + "=?",
                 new String[]{String.valueOf(info.id)}
         );
+    }
+
+
+    /** 插入新条目，主键无意义都会自增 */
+    @Nullable
+    public static Uri insert(Context context, PartialInfo info) {
+        ContentValues values = PartialInfo.info2ContentValues(info);
+        Uri affectedUri = context.getContentResolver()
+                .insert(Utils.getPartialBaseUri(context), values);
+        if (affectedUri == null) {
+            if (DEBUG) Log.e(TAG, "insert()：插入失败");
+            return null;
+        }
+
+        Utils.notifyChange(context, affectedUri, null);
+        // 通知service
+        Bundle bundle = new Bundle();
+        bundle.putInt(Constants.KEY_ID, Utils.getPartialId(context, affectedUri));
+        bundle.putInt(Constants.KEY_STATUS, DownloadInfo.STATUS_PENDING);// 新增一定是PENDING
+        bundle.putString(Constants.KEY_URI, affectedUri.toString());
+        Utils.startDownloadService(context, bundle);
+        return affectedUri;
+    }
+
+    /** 删除新条目 */
+    public static int delete(Context context, DownloadInfo info) {
+        ContentResolver resolver = context.getContentResolver();
+        return resolver.delete(Utils.getPartialBaseUri(context),
+                Constants.PARTIAL_DOWNLOAD_ID + "=?",
+                new String[]{String.valueOf(info.id)});
     }
 
 }

@@ -1,11 +1,8 @@
 package com.malong.download;
 
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -17,7 +14,6 @@ import com.malong.download.utils.FileUtils;
 import com.malong.download.utils.Utils;
 
 import java.util.List;
-import java.util.concurrent.FutureTask;
 
 public class DownloadManager {
     public static final String TAG = "【DownloadManager】";
@@ -42,58 +38,29 @@ public class DownloadManager {
     // 下载
     @Nullable
     public Uri download(Context context, DownloadInfo info) {
-        if (DEBUG) {
-            Log.d(TAG, "download（）调用");
-        }
-        ContentResolver resolver = context.getContentResolver();
-        ContentValues values = info.info2ContentValues();
-        Uri downloadUri;
-        // 检查之前下载过
-        Cursor cursor = null;
-        if (!TextUtils.isEmpty(info.destination_uri) && !TextUtils.isEmpty(info.fileName)) {
-            cursor = resolver.query(Utils.getDownloadBaseUri(context),
-                    new String[]{"*"},
-                    Constants.COLUMN_DOWNLOAD_URL + "=? AND "
-                            + Constants.COLUMN_DESTINATION_URI + "=? AND "
-                            + Constants.COLUMN_FILE_NAME + "=?",
-                    new String[]{info.download_url, info.destination_uri, info.fileName}, null, null);
-        }
-        if (!TextUtils.isEmpty(info.destination_path) && !TextUtils.isEmpty(info.fileName)) {
-            cursor = resolver.query(Utils.getDownloadBaseUri(context),
-                    new String[]{"*"},
-                    Constants.COLUMN_DOWNLOAD_URL + "=? AND "
-                            + Constants.COLUMN_DESTINATION_PATH + "=? AND "
-                            + Constants.COLUMN_FILE_NAME + "=?",
-                    new String[]{info.download_url, info.destination_path, info.fileName}, null, null);
-        }
-        List<DownloadInfo> infoList = DownloadInfo.readDownloadInfos(context, cursor);
-        Closeables.closeSafely(cursor);
+        if (DEBUG) Log.d(TAG, "download（）调用");
 
-        if (infoList.size() > 0) {
-            // 之前下载过，
-            for (DownloadInfo item : infoList) {
-                downloadUri = Utils.generateDownloadUri(context, item.id);
-                if (downloadUri != null) {
-                    //检查是否正在下载
-                    if (item.status == DownloadInfo.STATUS_RUNNING
-                    || item.status==DownloadInfo.STATUS_SUCCESS) {
-                        // 1、正在下载，无需重复操作
-                        return Utils.generateDownloadUri(context, item.id);
-                    } else {
-                        // 2、更新状态为PENDING，别的不改
-                        info.id = item.id;
-                        ProviderHelper.updateStutas(context, DownloadInfo.STATUS_PENDING, info);
-                        return Utils.generateDownloadUri(context, item.id);
-                    }
-                }
-            }
-        } else {
+        Uri downloadUri;
+        DownloadInfo oldInfo = ProviderHelper.queryOldDownload(context, info);
+        if (oldInfo == null) {
             // 3、没有旧的新增
-            downloadUri = resolver.insert(Utils.getDownloadBaseUri(context), values);
-            Closeables.closeSafely(cursor);
+            downloadUri = ProviderHelper.insert(context, info);
             return downloadUri;
+        } else {
+            // 之前下载过，
+            downloadUri = Utils.generateDownloadUri(context, oldInfo.id);
+            //检查是否正在下载
+            if (oldInfo.status == DownloadInfo.STATUS_RUNNING
+                    || oldInfo.status == DownloadInfo.STATUS_SUCCESS) {
+                // 1、正在下载/下载完成，无需重复操作
+                return downloadUri;
+            } else {
+                // 2、更新状态为PENDING，别的不改
+                ProviderHelper.updateStatus(context, DownloadInfo.STATUS_PENDING, oldInfo);
+                return downloadUri;
+            }
         }
-        return null;
+
     }
 
     // 停止
@@ -101,7 +68,7 @@ public class DownloadManager {
         if (DEBUG) {
             Log.d(TAG, "stop（）调用");
         }
-        ProviderHelper.updateStutas(context, DownloadInfo.STATUS_STOP, info);
+        ProviderHelper.updateStatus(context, DownloadInfo.STATUS_STOP, info);
         // 变更分片状态
         List<PartialInfo> partialInfoList = PartialProviderHelper
                 .queryPartialInfoList(context, info.id);
@@ -116,20 +83,15 @@ public class DownloadManager {
         if (DEBUG) {
             Log.d(TAG, "resume（）调用");
         }
-        ProviderHelper.updateStutas(context, DownloadInfo.STATUS_PENDING, info);
+        ProviderHelper.updateStatus(context, DownloadInfo.STATUS_PENDING, info);
     }
 
 
     // 取消
     public int cancel(Context context, DownloadInfo info) {
-        ContentResolver resolver = context.getContentResolver();
-        int deleteNum = resolver.delete(Utils.getDownloadBaseUri(context),
-                Constants._ID + "=?",
-                new String[]{String.valueOf(info.id)});
+        int deleteNum = ProviderHelper.delete(context, info);
         // 删除分片
-        resolver.delete(Utils.getPartialBaseUri(context),
-                Constants.PARTIAL_DOWNLOAD_ID + "=?",
-                new String[]{String.valueOf(info.id)});
+        PartialProviderHelper.delete(context, info);
         return deleteNum;
     }
 

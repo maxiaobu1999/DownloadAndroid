@@ -126,7 +126,7 @@ public class DownloadService extends Service {
             }
             if (callable != null) {
                 // 状态变为正在下载
-                ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_RUNNING, info);
+                ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_RUNNING, info);
                 FutureTask<DownloadInfo> futureTask = new FutureTask<>(callable);
                 mTaskMap.put(info.id, futureTask);
                 if (DEBUG) {
@@ -150,7 +150,7 @@ public class DownloadService extends Service {
                 mTaskMap.remove(info.id);
             }
 //             状态变为停止
-//            ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_STOP, info);
+//            ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_STOP, info);
         } else if (status == DownloadInfo.STATUS_CANCEL) {
 
             // 删除任务
@@ -162,22 +162,6 @@ public class DownloadService extends Service {
                 }
             }
         }
-
-//        // 清理FutureTask
-//        for (Iterator<Map.Entry<Integer, FutureTask>> it = mTaskMap.entrySet().iterator(); it.hasNext(); ) {
-//            Map.Entry<Integer, FutureTask> item = it.next();
-//            FutureTask task = item.getValue();
-//            if (task.isDone()) {
-//                it.remove();
-//            }
-//        }
-
-
-//        for (int i = 0; i < downloadInfos.size(); i++) {
-//            Log.d(TAG, "info.status:" + i+"===="+downloadInfos.get(i).status);
-//
-//        }
-//        int i = 0;
     }
 
     private void parsePartial(Bundle bundle) {
@@ -235,11 +219,11 @@ public class DownloadService extends Service {
 
     // 添加 删除 暂停 继续下载
     private void update(@Nullable Intent intent) {
-        if (Constants.DEBUG) {
+        if (Constants.DEBUG&&intent!=null) {
             int status = 0;
             int id = 0;
             String uri = "";
-            Bundle bundle = intent.getBundleExtra(Constants.KEY_BUNDLE);
+            Bundle bundle = intent.getExtras();
             if (bundle != null) {
                 status = bundle.getInt(Constants.KEY_STATUS, -1);
                 id = bundle.getInt(Constants.KEY_ID, -1);
@@ -252,7 +236,7 @@ public class DownloadService extends Service {
         if (intent == null) {
             return;
         }
-        Bundle bundle = intent.getBundleExtra(Constants.KEY_BUNDLE);
+        Bundle bundle = intent.getExtras();
         if (bundle == null) {
             return;
         }
@@ -273,65 +257,11 @@ public class DownloadService extends Service {
         if (DEBUG) Log.d(TAG, " onFirstStart()执行");
         first = false;
         // 首次启动 处理下一半的任务,running 2 pending
-        ContentValues values = new ContentValues();
-        values.put(Constants.COLUMN_STATUS, DownloadInfo.STATUS_PENDING);
-        int update = getContentResolver().update(Utils.getDownloadBaseUri(mContext),
-                values, Constants.COLUMN_STATUS + "=?"
-                , new String[]{String.valueOf(DownloadInfo.STATUS_RUNNING)});
-        if (DEBUG) Log.d(TAG, "onFirstStart():有【" + update + "】个STATUS_RUNNING变为STATUS_PENDING");
+        int update = ProviderHelper.updateStatus(mContext,
+                DownloadInfo.STATUS_PENDING, DownloadInfo.STATUS_RUNNING);
+        if (DEBUG) Log.d(TAG, "onFirstStart():有【" + update
+                + "】个STATUS_RUNNING变为STATUS_PENDING");
 
-
-//        Cursor cursor = getContentResolver().query(Utils.getDownloadBaseUri(mContext),
-//                new String[]{"*"},
-//                Constants.COLUMN_STATUS + "<>?" + " OR " + Constants.COLUMN_STATUS + " IS NULL",
-//                new String[]{String.valueOf(DownloadInfo.STATUS_SUCCESS)},
-//                null, null);
-//        List<DownloadInfo> downloadInfos = DownloadInfo.readDownloadInfos(mContext, cursor);
-//        for (DownloadInfo info : downloadInfos) {
-//            Log.d(TAG, "info.status:" + info.status);
-////            // 删除下载完成 && 不保存记录
-////            if (info.status == DownloadInfo.STATUS_SUCCESS
-////                    && info.complete == DownloadInfo.COMPLETE_NOT_SAVE) {
-////                Utils.deleteItem(mContext, info);
-////            }
-//            // 需要下载
-//            if (info.status == DownloadInfo.STATUS_PENDING) {
-//                Callable<DownloadInfo> callable = null;
-//                if (info.method == DownloadInfo.METHOD_COMMON) {
-//                    // 删除旧文件，重新下载
-//                    callable = new DownloadCallable(mContext, info);
-//                } else if (info.method == DownloadInfo.METHOD_BREAKPOINT) {
-//                    // 断点续传
-//                    callable = new BreakpointCallable(mContext, info);
-//                } else if (info.method == DownloadInfo.METHOD_PARTIAL) {
-//                    // 断点续传
-//                    callable = new PartialCallable(mContext, info, mExecutor);
-//                }
-//                if (callable != null) {
-//                    info.status = DownloadInfo.STATUS_RUNNING;// 状态变为正在下载
-//                    values = DownloadInfo.info2ContentValues(info);
-//                    if (DEBUG) {
-//                        Log.d(TAG, "开始下载任务：" +
-//                                Utils.generateDownloadUri(mContext, info.id).toString());
-//                    }
-//
-//                    getContentResolver().update(Utils.getDownloadBaseUri(mContext),
-//                            values, Constants._ID + "=?",
-//                            new String[]{String.valueOf(info.id)});
-//
-//                    FutureTask<DownloadInfo> futureTask = new FutureTask<>(callable);
-//                    mTaskMap.put(info.id, futureTask);
-//                    mExecutor.execute(futureTask);
-//                }
-//            } else if (info.status == DownloadInfo.STATUS_STOP) {
-//                // 停止
-//                FutureTask task = mTaskMap.get(info.id);
-//                if (task != null) {
-//                    task.cancel(true);
-//                    mTaskMap.remove(info.id);
-//                }
-//            }
-//        }
     }
 
     class WorkHandler extends Handler {
@@ -349,21 +279,5 @@ public class DownloadService extends Service {
             super.handleMessage(msg);
         }
     }
-
-//    class MThread extends Thread {
-//        public MThread(@Nullable Runnable target) {
-//            super(target);
-//
-//        }
-//
-//        @Override
-//        public void interrupt() {
-//            ThreadLocal<Boolean> local = new ThreadLocal<>();
-//            local.set(true);
-//            //            super.interrupt();
-////            MThread.this.stop();
-//
-//        }
-//    }
 
 }

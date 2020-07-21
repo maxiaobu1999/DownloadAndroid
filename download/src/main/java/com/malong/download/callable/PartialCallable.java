@@ -120,13 +120,7 @@ public class PartialCallable implements Callable<DownloadInfo> {
                 info.destination_path = mInfo.destination_path;
                 info.fileName = mInfo.fileName;
 
-                ContentValues values = PartialInfo.info2ContentValues(info);
-
-
-                Uri insert = mContext.getContentResolver().insert(Utils.getPartialBaseUri(mContext), values);
-                if (insert == null) {
-                    Log.e(TAG, "插入失败+++");
-                }
+                Uri insert = PartialProviderHelper.insert(mContext, info);
 
                 final ContentObserver observer = new PartialObserver(mHandler);
                 mContext.getContentResolver().registerContentObserver(insert
@@ -177,7 +171,7 @@ public class PartialCallable implements Callable<DownloadInfo> {
                 doneNum++;
                 if (doneNum == mInfo.separate_num) {
                     // 都完成
-                    ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_SUCCESS, mInfo);
+                    ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_SUCCESS, mInfo);
                     quitLooper();
                 }
             } else if (status == PartialInfo.STATUS_STOP
@@ -187,7 +181,7 @@ public class PartialCallable implements Callable<DownloadInfo> {
                     mContext.getContentResolver().unregisterContentObserver(observer);
 
                 }
-//                ProviderHelper.updateStutas(mContext, DownloadInfo.STATUS_STOP, mInfo);
+//                ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_STOP, mInfo);
                 quitLooper();
             }
         }

@@ -3,6 +3,7 @@ package com.malong.download.utils;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -10,6 +11,7 @@ import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.malong.download.Constants;
@@ -27,6 +29,22 @@ public class Utils {
     public static String getPartialAuthority(Context context) {
         return context.getPackageName() + ".partial";
 
+    }
+    /** 解析下载ID，return -1 if 解析失败 */
+    public static int getPartialId(Context context, Uri uri) {
+        int id = -1;
+        if (uri == null
+                || !"content".equals(uri.getScheme())
+                || !getPartialAuthority(context).equals(uri.getAuthority())
+                || TextUtils.isEmpty(uri.getLastPathSegment())) {
+            return id;// 检查合法性
+        }
+        try {
+            id = Integer.parseInt(uri.getLastPathSegment());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return id;
     }
 
     /** content://com.malong.downloadsample.downloads */
@@ -57,6 +75,7 @@ public class Utils {
     }
 
 
+    @NonNull
     public static Uri generateDownloadUri(Context context, int _id) {
         return Uri.parse("content://" + context.getPackageName() + ".downloads/" + _id);
     }
@@ -80,8 +99,8 @@ public class Utils {
 
     public static void startDownloadService(Context context, Bundle bundle) {
         if (Constants.DEBUG) {
-            int status=0;
-            int id=0;
+            int status = 0;
+            int id = 0;
             String uri = "";
             if (bundle != null) {
                 status = bundle.getInt(Constants.KEY_STATUS, -1);
@@ -92,17 +111,12 @@ public class Utils {
             Log.d(TAG, "startDownloadService调用：status=" + status + "；id=" + id + "uri=" + uri);
         }
         Intent intent = new Intent();
-        intent.putExtra(Constants.KEY_BUNDLE, bundle);
+        intent.putExtras(bundle);
         intent.setClass(context, DownloadService.class);
         context.startService(intent);
     }
 
 
-    public static void deleteItem(Context context, DownloadInfo info) {
-        Uri uri = generateDownloadUri(context, info.id);
-        context.getContentResolver().delete(uri, Constants._ID + "=?",
-                new String[]{String.valueOf(info.id)});
-    }
 
 
     /** 检查uri对应的文件是否存在 */
@@ -162,5 +176,9 @@ public class Utils {
         return outputStream;
     }
 
+
+    public static void notifyChange(Context context, Uri uri, @Nullable ContentObserver observer) {
+        context.getContentResolver().notifyChange(uri, observer);
+    }
 
 }

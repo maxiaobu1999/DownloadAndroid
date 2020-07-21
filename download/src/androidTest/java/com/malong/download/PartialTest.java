@@ -3,8 +3,6 @@ package com.malong.download;
 import android.Manifest;
 import android.content.Context;
 import android.database.ContentObserver;
-import android.database.Cursor;
-import android.net.ProxyInfo;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
@@ -16,7 +14,6 @@ import androidx.test.rule.ServiceTestRule;
 
 import com.malong.download.partial.PartialInfo;
 import com.malong.download.partial.PartialProviderHelper;
-import com.malong.download.utils.Closeables;
 import com.malong.download.utils.FileUtils;
 import com.malong.download.utils.Utils;
 
@@ -139,7 +136,7 @@ public class PartialTest {
         Assert.assertNotNull(fileName);
         builder.setFileName(fileName);
         builder.setMethod(DownloadInfo.METHOD_PARTIAL);
-        builder.setSeparate_num(11);
+        builder.setSeparate_num(4);
         final DownloadInfo info = builder.build();
 
 
@@ -203,7 +200,7 @@ public class PartialTest {
         // ETag : "4df4d61142e773a16769473cf2654b71"
         String md5 = FileUtils.toMd5(new File(info.destination_path, info.fileName), false);
         Assert.assertTrue(TextUtils.equals(doneInfo.etag, md5));// 校验md5
-        Assert.assertTrue(doneInfo.total_bytes>doneInfo.current_bytes);
+        Assert.assertTrue(doneInfo.total_bytes>=doneInfo.current_bytes);
 
         File file = new File(doneInfo.destination_path, doneInfo.fileName);
         Assert.assertEquals(file.length(), doneInfo.total_bytes);
@@ -237,7 +234,7 @@ public class PartialTest {
         Assert.assertNotNull(fileName);
         builder.setFileName(fileName);
         builder.setMethod(DownloadInfo.METHOD_PARTIAL);
-        builder.setSeparate_num(11);
+        builder.setSeparate_num(4);
         final DownloadInfo info = builder.build();
 
 

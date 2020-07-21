@@ -117,6 +117,8 @@ public final class DownloadProvider {
 
     /**
      * 向ContentProvider中添加一条数据。
+     * <p>
+     *     主键在这里传不传一样，都会新增主键自增
      *
      * @param uri    CP的授权信息
      * @param values 保存待添加的数据
@@ -125,7 +127,7 @@ public final class DownloadProvider {
     @Nullable
     public Uri insert(@NonNull Uri uri, @Nullable ContentValues values) {
         if (URI_MATCHER.match(uri) == URI_MATCHER_DOWNLOAD) {
-            // 增
+            // 增,
             // 参数1：要操作的表名称
             // 参数2：SQl不允许一个空列，若ContentValues是空，那么这一列被明确的指明为NULL值
             // 参数3：ContentValues对象
@@ -135,16 +137,7 @@ public final class DownloadProvider {
                 // 插入失败
                 return null;
             }
-            Uri affectedUri = Utils.generateDownloadUri(mContext, insertId);
-            mContext.getContentResolver().notifyChange(affectedUri, null);
-            // 通知service
-            Bundle bundle = new Bundle();
-            bundle.putInt(Constants.KEY_ID, insertId);
-            bundle.putInt(Constants.KEY_STATUS, DownloadInfo.STATUS_PENDING);// 新增一定是PENDING
-            bundle.putString(Constants.KEY_URI, affectedUri.toString());
-            if (DEBUG) Log.d(TAG, "insert(）新增下载:" + affectedUri.toString());
-            Utils.startDownloadService(mContext, bundle);
-            return affectedUri;
+            return Utils.generateDownloadUri(mContext, insertId);
         } else if (URI_MATCHER.match(uri) == URI_MATCHER_PARTIAL) {
             // 分片
             int insertId = (int) mDb.insert(Constants.DB_PARTIAL_TABLE, null, values);// 插入数据
@@ -152,17 +145,7 @@ public final class DownloadProvider {
                 // 插入失败
                 return null;
             }
-            Uri affectedUri = Utils.generatePartialBUri(mContext, insertId);
-            mContext.getContentResolver().notifyChange(affectedUri, null);
-            // 通知service
-            Bundle bundle = new Bundle();
-            bundle.putInt(Constants.KEY_ID, insertId);
-            bundle.putInt(Constants.KEY_STATUS, DownloadInfo.STATUS_PENDING);// 新增一定是PENDING
-            bundle.putString(Constants.KEY_URI, affectedUri.toString());
-            Utils.startDownloadService(mContext, bundle);
-
-            Log.d(TAG, "++++++++++++++++++++++++++++uri:" + affectedUri);
-            return affectedUri;
+            return Utils.generatePartialBUri(mContext, insertId);
         }
         return null;
 
@@ -323,8 +306,6 @@ public final class DownloadProvider {
      * @return 删除的条数
      */
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-
-
         int delete = 0;
         if (URI_MATCHER.match(uri) == URI_MATCHER_DOWNLOAD) {
             // 先查出受影响的条目
