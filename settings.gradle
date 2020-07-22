@@ -1,2 +1,2 @@
 include ':app', ':moses'
-rootProject.name='Download Sample'
+rootProject.name='Moses'

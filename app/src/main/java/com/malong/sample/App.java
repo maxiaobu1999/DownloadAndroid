@@ -1,4 +1,4 @@
-package com.malong.downloadsample;
+package com.malong.sample;
 
 import android.app.Application;
 import android.content.Context;

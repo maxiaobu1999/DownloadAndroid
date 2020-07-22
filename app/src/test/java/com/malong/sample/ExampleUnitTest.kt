@@ -1,4 +1,4 @@
-package com.malong.downloadsample
+package com.malong.sample
 
 import org.junit.Test
 
