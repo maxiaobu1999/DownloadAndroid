@@ -11,12 +11,12 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 
-import com.malong.download.Constants;
-import com.malong.download.DownloadManager;
-import com.malong.download.DownloadInfo;
-import com.malong.download.DownloadService;
-import com.malong.download.ProviderHelper;
-import com.malong.download.utils.FileUtils;
+import com.malong.moses.Constants;
+import com.malong.moses.DownloadManager;
+import com.malong.moses.DownloadTask;
+import com.malong.moses.DownloadService;
+import com.malong.moses.ProviderHelper;
+import com.malong.moses.utils.FileUtils;
 
 import java.io.File;
 
@@ -41,7 +41,7 @@ public class TestActivity extends AppCompatActivity {
                 super.onChange(selfChange, uri);
                 Log.d(TAG, "onChange()" + uri.toString());
                 Log.d(TAG, "onChange()queryProcess=" + ProviderHelper.queryProcess(mContext,uri));
-                Log.d(TAG, "onChange():queryStatus=" + DownloadManager.queryStatus(mContext,uri));
+//                Log.d(TAG, "onChange():queryStatus=" + DownloadManager.queryStatus(mContext,uri));
             }
         };
 
@@ -57,14 +57,14 @@ public class TestActivity extends AppCompatActivity {
                 String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
                 String filePath = mContext.getFilesDir() + File.separator + fileName;// /data/user/0/com.malong.downloadsample/files
                 // 增
-                DownloadInfo info = new DownloadInfo();
-                info.status = DownloadInfo.STATUS_PENDING;
+                DownloadTask info = new DownloadTask();
+                info.status = DownloadTask.STATUS_PENDING;
                 info. download_url= downloadUrl;
                 info.destination_path = filePath;
                 info.fileName = fileName;
-                info.method = DownloadInfo.METHOD_BREAKPOINT;
+                info.method = DownloadTask.METHOD_BREAKPOINT;
 
-                Uri uri = DownloadManager.getInstance().download(mContext, info);
+                Uri uri = DownloadManager.getInstance().doDownload(mContext, info);
                 getContentResolver().registerContentObserver(uri, false, mObserver);
 
 

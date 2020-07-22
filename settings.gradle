@@ -1,2 +1,2 @@
-include ':app', ':download'
+include ':app', ':moses'
 rootProject.name='Download Sample'

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.malong.moses">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BROADCAST_STICKY" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- for umeng -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+<!-- false或 不设置不能访问 true可以 -->
+    <!--  android:requestLegacyExternalStorage="true" -->
+    <application
+        >
+        <service
+            android:name="com.malong.moses.DownloadService"
+            android:enabled="true" />
+        <!-- exported:设置此provider是否可以被其他应用使用。 -->
+        <!-- 指定 authorieties（类似包名的格式，如 com.xx.xx），访问者通过 content://authorities/path 的形式访问 -->
+        <provider
+            android:name="com.malong.moses.DownloadProviderProxy"
+            android:authorities="${applicationId}.downloads;${applicationId}.partial"
+            android:exported="false" />
+    </application>
+</manifest>
