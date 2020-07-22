@@ -50,17 +50,25 @@ public class DownloadManager {
             // 之前下载过，
             downloadUri = Utils.generateDownloadUri(context, oldInfo.id);
             //检查是否正在下载
-            if (oldInfo.status == DownloadInfo.STATUS_RUNNING
-                    || oldInfo.status == DownloadInfo.STATUS_SUCCESS) {
+            if (oldInfo.status == DownloadInfo.STATUS_RUNNING) {
                 // 1、正在下载/下载完成，无需重复操作
                 return downloadUri;
+            } else if (oldInfo.status == DownloadInfo.STATUS_SUCCESS) {
+                // 已经下载成功过，检查文件是否存在
+                if (FileUtils.checkFileExist(info.destination_path, info.fileName)) {
+                    // 存在，更新状态为STATUS_SUCCESS，别的不改
+                    ProviderHelper.updateStatus(context, DownloadInfo.STATUS_SUCCESS, oldInfo);
+                } else {
+                    // 文件不存在了，需要重新下载
+                    downloadUri = reDownload(context, info);
+                }
             } else {
                 // 2、更新状态为PENDING，别的不改
                 ProviderHelper.updateStatus(context, DownloadInfo.STATUS_PENDING, oldInfo);
                 return downloadUri;
             }
+            return downloadUri;
         }
-
     }
 
     // 停止
@@ -103,6 +111,13 @@ public class DownloadManager {
         return cancel;
     }
 
+
+    // 重新下载
+    public Uri reDownload(Context context, DownloadInfo info) {
+        int cancel = cancel(context, info);// 删除表数据
+        FileUtils.deleteFile(info.destination_path + info.fileName);// 删除文件
+        return download(context, info);
+    }
 
     // 查询下载状态
     public static int queryStatus(Context context, Uri uri) {

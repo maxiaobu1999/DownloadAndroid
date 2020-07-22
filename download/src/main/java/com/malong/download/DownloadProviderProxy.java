@@ -51,9 +51,6 @@ public class DownloadProviderProxy extends ContentProvider {
     @Nullable
     @Override
     public Uri insert(@NonNull Uri uri, @Nullable ContentValues values) {
-        if (DEBUG) {
-            Log.d(TAG, "insert() ");
-        }
         return getProvider().insert(uri, values);
     }
 
@@ -67,9 +64,6 @@ public class DownloadProviderProxy extends ContentProvider {
      */
     @Override
     public int delete(@NonNull Uri uri, @Nullable String selection, @Nullable String[] selectionArgs) {
-        if (DEBUG) {
-            Log.d(TAG, "delete() ");
-        }
         return getProvider().delete(uri, selection, selectionArgs);
     }
 
@@ -84,9 +78,6 @@ public class DownloadProviderProxy extends ContentProvider {
      */
     @Override
     public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection, @Nullable String[] selectionArgs) {
-        if (DEBUG) {
-            Log.d(TAG, "update() ");
-        }
         return getProvider().update(uri, values, selection, selectionArgs);
     }
 
@@ -105,9 +96,6 @@ public class DownloadProviderProxy extends ContentProvider {
     @Override
     public Cursor query(@NonNull Uri uri, @Nullable String[] projection, @Nullable String selection,
                         @Nullable String[] selectionArgs, @Nullable String sortOrder) {
-        if (DEBUG) {
-            Log.d(TAG, "query() ");
-        }
         return getProvider().query(uri, projection, selection, selectionArgs, sortOrder);
     }
 

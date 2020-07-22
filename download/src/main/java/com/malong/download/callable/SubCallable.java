@@ -3,12 +3,11 @@ package com.malong.download.callable;
 import android.content.Context;
 import android.util.Log;
 
-import com.malong.download.BuildConfig;
 import com.malong.download.CancelableThread;
 import com.malong.download.Constants;
 import com.malong.download.DownloadInfo;
-import com.malong.download.Http;
-import com.malong.download.HttpInfo;
+import com.malong.download.connect.Connection;
+import com.malong.download.connect.HttpInfo;
 import com.malong.download.partial.PartialInfo;
 import com.malong.download.partial.PartialProviderHelper;
 import com.malong.download.utils.Closeables;
@@ -25,7 +24,6 @@ public class SubCallable implements Callable<PartialInfo> {
     private static boolean DEBUG = Constants.DEBUG & true;
     private PartialInfo mInfo;
     private Context mContext;
-    private CancelableThread mThread;
 
     public SubCallable(Context context, PartialInfo info) {
         mContext = context;
@@ -34,23 +32,17 @@ public class SubCallable implements Callable<PartialInfo> {
     }
 
     @Override
-    public PartialInfo call() throws Exception {
+    public PartialInfo call() {
         if (DEBUG) Log.d(TAG, "call()执行");
-        mThread = (CancelableThread) Thread.currentThread();
+        CancelableThread mThread = (CancelableThread) Thread.currentThread();
         //noinspection ResultOfMethodCallIgnored
         new File(mInfo.destination_path).mkdirs();
         File destFile = new File(mInfo.destination_path + mInfo.fileName);// 输出文件
-        // 文件存在
-        if (destFile.exists()) {
-            Log.d(TAG, "destFile.length():" + destFile.length());
-        }
-
         HttpInfo httpInfo = new HttpInfo();
         httpInfo.download_url = mInfo.download_url;
         httpInfo.destination_uri = mInfo.destination_uri;
         httpInfo.destination_path = mInfo.destination_path;
         httpInfo.fileName = mInfo.fileName;
-//        httpInfo.status = mInfo.status;
         httpInfo.method = DownloadInfo.METHOD_PARTIAL;
         httpInfo.total_bytes = mInfo.total_bytes;
         httpInfo.current_bytes = mInfo.current_bytes;
@@ -62,19 +54,16 @@ public class SubCallable implements Callable<PartialInfo> {
             PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
             return mInfo;
         }
-        Http http = new Http(mContext, httpInfo);
 
-        InputStream is = null;
+        Connection connection = new Connection(mContext, httpInfo);
+        // 请求服务器，获取输入流
+        InputStream is = connection.getInputStream();
+        if (is == null) {
+            PartialProviderHelper.updatePartialStutas(mContext, PartialInfo.STATUS_FAIL, mInfo);
+            return mInfo;
+        }
         RandomAccessFile raf = null;
         try {
-            is = http.getDownloadStream();
-            if (is == null) {
-                Log.d(TAG, "http.getCode():" + http.getCode());
-                mInfo.status = DownloadInfo.STATUS_FAIL;
-                PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
-                return mInfo;
-            }
-            Log.d(TAG, "++++++++++++http.getContentLength():" + http.getContentLength());
             raf = new RandomAccessFile(destFile, "rw");
             raf.seek(mInfo.start_index + mInfo.current_bytes);
             final int defaultBufferSize = 1024 * 3;
@@ -86,7 +75,7 @@ public class SubCallable implements Callable<PartialInfo> {
                 Log.d(TAG, "isInterrupted():" + mThread.cancel);
                 if (mThread.cancel) {
                     mThread.cancel = false;
-                    if (BuildConfig.DEBUG) Log.d(TAG, "任务被取消");
+                    if (DEBUG) Log.d(TAG, "任务被取消");
                     return mInfo;
                 }
                 raf.write(buf, 0, len);
@@ -106,7 +95,7 @@ public class SubCallable implements Callable<PartialInfo> {
             PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
         } finally {
             Closeables.closeSafely(is);
-            http.close();
+            connection.close();
             Closeables.closeSafely(raf);
         }
         return null;

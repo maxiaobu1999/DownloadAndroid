@@ -1,15 +1,16 @@
 package com.malong.download.callable;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
-import com.malong.download.BuildConfig;
 import com.malong.download.CancelableThread;
 import com.malong.download.Constants;
 import com.malong.download.DownloadInfo;
-import com.malong.download.Http;
-import com.malong.download.HttpInfo;
 import com.malong.download.ProviderHelper;
+import com.malong.download.connect.Connection;
+import com.malong.download.connect.HttpInfo;
+import com.malong.download.connect.ResponseInfo;
 import com.malong.download.utils.Closeables;
 import com.malong.download.utils.FileUtils;
 import com.malong.download.utils.Utils;
@@ -25,9 +26,8 @@ public class DownloadCallable implements Callable<DownloadInfo> {
     public static final String TAG = "【DownloadCallable】";
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
-    DownloadInfo mInfo;
-    Context mContext;
-    CancelableThread mThread;
+    private DownloadInfo mInfo;
+    private Context mContext;
 
     public DownloadCallable(Context context, DownloadInfo info) {
         mContext = context;
@@ -37,58 +37,70 @@ public class DownloadCallable implements Callable<DownloadInfo> {
     @Override
     public DownloadInfo call() {
         if (DEBUG) Log.d(TAG, "call()执行");
-        mThread = (CancelableThread) Thread.currentThread();
-        // 删除掉过去下载的文件（eg：下一半的重新下载）
-        File destFile = new File(mInfo.destination_path + mInfo.fileName);// 输出文件
-        if (destFile.exists()) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "删除残留文件：" + destFile.getAbsolutePath());
-            FileUtils.deleteFile(destFile);
-        }
+        CancelableThread mThread = (CancelableThread) Thread.currentThread();
+
         HttpInfo httpInfo = new HttpInfo();
         httpInfo.download_url = mInfo.download_url;
         httpInfo.destination_uri = mInfo.destination_uri;
         httpInfo.destination_path = mInfo.destination_path;
         httpInfo.fileName = mInfo.fileName;
-//        httpInfo.status = mInfo.status;
         httpInfo.method = mInfo.method;
-        httpInfo.total_bytes = mInfo.total_bytes;
-        httpInfo.current_bytes = mInfo.current_bytes;
-        Http http = new Http(mContext, httpInfo);
-        // 下载内容的长度
-        InputStream is = null;
+
+        Connection connection = new Connection(mContext, httpInfo);
+        ResponseInfo responseInfo = connection.getResponseInfo();
+        if (responseInfo == null) {// 下载失败
+            ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_FAIL, mInfo);
+            return mInfo;
+        }
+        if (!TextUtils.isEmpty(responseInfo.contentType)) {
+            mInfo.mime_type = responseInfo.contentType;
+        }
+        if (!TextUtils.isEmpty(responseInfo.eTag)) {
+            mInfo.etag = responseInfo.eTag;
+        }
+        if (responseInfo.contentLength != 0) {
+            mInfo.total_bytes = responseInfo.contentLength;
+        }
+        ProviderHelper.updateDownloadInfoPortion(mContext, mInfo);// 持久化下载信息
+
+
+
+        // TODO: 2020-07-21 适配URI
+        // 删除掉过去下载的文件（eg：下一半的重新下载）
+        File destFile = new File(mInfo.destination_path + mInfo.fileName);// 输出文件
+        if (destFile.exists()) {
+            if (DEBUG) Log.d(TAG, "删除残留文件：" + destFile.getAbsolutePath());
+            FileUtils.deleteFile(destFile);
+        }
+        // 请求服务器，获取输入流
+        InputStream is = connection.getInputStream();
+        if (is == null) {
+            ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_FAIL, mInfo);
+            return mInfo;
+        }
+
+
         FileOutputStream os = null;
         try {
-            is = http.getDownloadStream();
-
-            if (mInfo.total_bytes <=0) {
-                mInfo.total_bytes = http.getContentLength();
-            }
-            mInfo.etag = http.getETag();
-            ProviderHelper.updateDownloadInfoPortion(mContext, mInfo);
-
-
-            if (DEBUG) Log.d(TAG, "http.getCode():" + http.getCode());
-            if (is == null) {
-                mInfo.status = DownloadInfo.STATUS_FAIL;
-                ProviderHelper.onStatusChange(mContext, mInfo);
+            os = Utils.getOutputStream(mContext, mInfo);
+            if (os == null) {
+                if (DEBUG) Log.e(TAG, "下载失败,存储路径不可写");
+                ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_FAIL, mInfo);
                 return mInfo;
             }
-            os = Utils.getOutputStream(mContext, mInfo);
             final int defaultBufferSize = 1024 * 3;
             byte[] buf = new byte[defaultBufferSize];
             long size = 0;
             int len;
             while ((len = is.read(buf)) > 0) {
-                // 响应task。cancel()
-                Log.d(TAG, "isInterrupted():" + mThread.cancel);
-                if ( mThread.cancel) {
+                // 响应task.cancel()
+                if (mThread.cancel) {
                     mThread.cancel = false;
                     return mInfo;
                 }
                 os.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
-                Log.d(TAG, "size:" + size);
                 ProviderHelper.updateProcess(mContext, mInfo);
             }
             os.flush();
@@ -103,7 +115,7 @@ public class DownloadCallable implements Callable<DownloadInfo> {
             e.printStackTrace();
         } finally {
             Closeables.closeSafely(is);
-            http.close();
+            connection.close();
             Closeables.closeSafely(os);
         }
         return mInfo;

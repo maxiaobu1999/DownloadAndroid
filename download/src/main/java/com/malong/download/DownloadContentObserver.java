@@ -89,10 +89,11 @@ public class DownloadContentObserver extends ContentObserver {
 //        }
     }
 
+    /** 进度变更回调 */
     public void onProcessChange(Uri uri,long cur) {
 
     }
-
+    /** 状态变更回调 */
     public void onStatusChange(Uri uri,int status) {
 
     }

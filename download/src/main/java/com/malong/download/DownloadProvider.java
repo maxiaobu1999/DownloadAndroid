@@ -208,9 +208,8 @@ public final class DownloadProvider {
             for (DownloadInfo info : infoList) {
                 // 1、状态发生改变
                 if (values.containsKey(Constants.COLUMN_STATUS)) {
-                    // 成功的不能变
+                    // 成功的条目不能变,只能删除
                     if (info.status == PartialInfo.STATUS_SUCCESS) {
-                        // TODO: 2020-07-17  
                         continue;
                     }
                     int curStatus = (int) values.get(Constants.COLUMN_STATUS);

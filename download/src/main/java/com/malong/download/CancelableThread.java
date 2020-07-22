@@ -13,7 +13,5 @@ public class CancelableThread extends Thread {
     public void interrupt() {
         cancel = true;
         //            super.interrupt();
-//            MThread.this.stop();
-
     }
 }

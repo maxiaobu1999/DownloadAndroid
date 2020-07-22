@@ -8,7 +8,6 @@ import android.content.UriMatcher;
 import android.content.res.AssetFileDescriptor;
 import android.database.ContentObserver;
 import android.database.Cursor;
-import android.database.CursorIndexOutOfBoundsException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Looper;
@@ -21,6 +20,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
+import com.malong.download.connect.HttpInfo;
 import com.malong.download.utils.FileUtils;
 import com.malong.download.utils.Utils;
 
@@ -32,9 +32,7 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -217,11 +215,11 @@ public class StorageTest {
             httpInfo.method = DownloadInfo.METHOD_PARTIAL;
             httpInfo.total_bytes = info.total_bytes;
             httpInfo.current_bytes = info.current_bytes;
-            Http http = new Http(mContext, httpInfo);
-            InputStream inputStream = http.getDownloadStream();
-            FileOutputStream outputStream = new FileOutputStream(pfd.getFileDescriptor());
-            long l = FileUtils.copyStream(inputStream, outputStream);
-            Log.d(TAG, "l:" + l);
+//            Http http = new Http(mContext, httpInfo);
+//            InputStream inputStream = http.getDownloadStream();
+//            FileOutputStream outputStream = new FileOutputStream(pfd.getFileDescriptor());
+//            long l = FileUtils.copyStream(inputStream, outputStream);
+//            Log.d(TAG, "l:" + l);
 
             // Write data into the pending image.
         } catch (IOException e) {
@@ -362,7 +360,7 @@ public class StorageTest {
         Thread mThread = Thread.currentThread();
         Field field = looper.getClass().getDeclaredField("sThreadLocal");
         field.setAccessible(true);
-        ThreadLocal threadLocal =(ThreadLocal) field.get(looper);
+        ThreadLocal threadLocal = (ThreadLocal) field.get(looper);
         Log.d(TAG, "threadLocal.get():" + threadLocal.get());
         threadLocal.set(null);
 
@@ -393,7 +391,7 @@ public class StorageTest {
         info.id = downloadId;
         info.download_url = "123";
         Uri insert1 = ProviderHelper.insert(mContext, info);
-        Assert.assertTrue(TextUtils.equals(insert.toString(),insert1.toString()));
+        Assert.assertTrue(TextUtils.equals(insert.toString(), insert1.toString()));
 
 
     }

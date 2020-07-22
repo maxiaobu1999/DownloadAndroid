@@ -1,7 +1,6 @@
 package com.malong.download;
 
 import android.app.Service;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -122,7 +121,7 @@ public class DownloadService extends Service {
                 callable = new BreakpointCallable(mContext, info);
             } else if (info.method == DownloadInfo.METHOD_PARTIAL) {
                 // 分片下载
-                callable = new PartialCallable(mContext, info, mExecutor);
+                callable = new PartialCallable(mContext, info);
             }
             if (callable != null) {
                 // 状态变为正在下载
@@ -140,7 +139,6 @@ public class DownloadService extends Service {
             if (info == null) {// ID无效
                 return;
             }
-
 
             // 停止主任务
             FutureTask task = mTaskMap.get(info.id);

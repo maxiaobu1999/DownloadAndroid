@@ -1,4 +1,4 @@
-package com.malong.download;
+package com.malong.download.connect;
 
 public class HttpInfo {
     /** 下载链接 */
