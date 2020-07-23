@@ -12,6 +12,7 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import com.malong.moses.Constants
 import com.malong.moses.Download
 import com.malong.moses.DownloadListener
@@ -80,7 +81,7 @@ class SingleActivity : BaseSampleActivity() {
 
     /** 配置下载任务信息 */
     private fun initTask() {
-        val filename = "single-test"
+        val filename =  Constants.IMAGE_NAME
         val url = Constants.BASE_URL + Constants.IMAGE_NAME
 //        val url =
 //            "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
@@ -205,10 +206,13 @@ class SingleActivity : BaseSampleActivity() {
 
     fun openFile(context: Context, file: String?) {
         try {
+            val contentUri: Uri = FileProvider.getUriForFile(context,
+                context.packageName+".fileprovider", File(file))
             val intent = Intent()
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION )
             intent.action = Intent.ACTION_VIEW
-            intent.setDataAndType(Uri.fromFile(File(file)), MimeTypeUtils.getMIMEType(file))
+            intent.setDataAndType(contentUri, MimeTypeUtils.getMIMEType(file))
             context.startActivity(intent)
             Intent.createChooser(intent, "请选择对应的软件打开该附件！")
         } catch (e: ActivityNotFoundException) {
