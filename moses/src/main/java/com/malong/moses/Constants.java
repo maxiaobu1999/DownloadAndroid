@@ -12,6 +12,7 @@ public class Constants {
     public static final String KEY_STATUS_CHANGE = "status_change";
     public static final String KEY_PROCESS_CHANGE = "process_change";
     public static final String KEY_PROCESS = "process";
+    public static final String KEY_LENGTH = "length";
     public static final String KEY_ID = "id";
     public static final String KEY_URI = "uri";
     public static final String KEY_PARTIAL_NUM = "partial_num";

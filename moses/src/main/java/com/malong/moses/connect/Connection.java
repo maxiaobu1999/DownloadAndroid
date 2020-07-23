@@ -34,12 +34,12 @@ public class Connection {
         HttpURLConnection connection = null;
         try {
             URL download_url = new URL(mInfo.download_url);
-            Log.d(TAG, mInfo.download_url+"++++++++++");
+            Log.d(TAG, "地址：" + mInfo.download_url);
             connection = (HttpURLConnection) (download_url.openConnection());
-            connection.setConnectTimeout(500);// 设置连接超时时间
-            connection.setReadTimeout(500);// 设置读取超时时间
+            connection.setConnectTimeout(10 * 1000);// 设置连接超时时间
+            connection.setReadTimeout(10 * 1000);// 设置读取超时时间
             // 设置请求参数，即具体的 HTTP 方法
-            connection.setRequestMethod("GET");// 只需要响应体(用HEAD不好使，腾讯处理不了这个请求)
+            connection.setRequestMethod("GET");// 只需要响应体(用HEAD不好使，腾讯处理不了这个请求方式)
             connection.setRequestProperty("Connection", "Keep-Alive");// 避免后续重新建立连接
 //            // 设置是否向 httpUrlConnection 输出，
 //            // 对于post请求，参数要放在 http 正文内，因此需要设为true。

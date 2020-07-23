@@ -65,14 +65,13 @@ public class DownloadManagerTest {
         builder.setFileName(fileName);
         DownloadTask info = builder.build();
 
-        DownloadManager manager = DownloadManager.getInstance();
-        Uri uri = manager.doDownload(mContext, info);
+        Download manager = Download.getInstance();
+        DownloadTask task = manager.doDownload(mContext, info);
 
-        info.id = Utils.getDownloadId(mContext, uri);
-        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
+        ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
-            public void onProcessChange(Uri uri, long cur) {
-                super.onProcessChange(uri, cur);
+            public void onProcessChange(Uri uri, long cur,long length) {
+                super.onProcessChange(uri, cur,length);
                 Log.d(DownloadManagerTest.TAG, "进度发生改变：当前进度=" + cur);
             }
 
@@ -83,7 +82,9 @@ public class DownloadManagerTest {
                     countDownLatch.countDown();
             }
         };
-        mContext.getContentResolver().registerContentObserver(uri, false, mObserver);
+        mContext.getContentResolver().registerContentObserver(
+                Utils.generateDownloadUri(mContext,task.id),
+                false, mObserver);
         countDownLatch = new CountDownLatch(1);
         try {
             countDownLatch.await();
@@ -93,7 +94,7 @@ public class DownloadManagerTest {
 
         // 删除
 
-        int delete = DownloadManager.getInstance().deleteDownload(mContext, info);
+        int delete = Download.getInstance().deleteDownload(mContext, info);
         Assert.assertEquals(1, delete);
 
 
@@ -117,13 +118,12 @@ public class DownloadManagerTest {
         DownloadTask info = builder.build();
 
 
-        DownloadManager manager = DownloadManager.getInstance();
-        Uri uri = manager.doDownload(mContext, info);
-        info.id = Utils.getDownloadId(mContext, uri);
-        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
+        Download manager = Download.getInstance();
+        DownloadTask task = manager.doDownload(mContext, info);
+        ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
-            public void onProcessChange(Uri uri, long cur) {
-                super.onProcessChange(uri, cur);
+            public void onProcessChange(Uri uri, long cur,long length) {
+                super.onProcessChange(uri, cur,length);
                 Log.d(DownloadManagerTest.TAG, "进度发生改变：当前进度=" + cur);
             }
 
@@ -133,7 +133,8 @@ public class DownloadManagerTest {
 //                countDownLatch.countDown();
             }
         };
-        mContext.getContentResolver().registerContentObserver(uri, false, mObserver);
+        mContext.getContentResolver().registerContentObserver(
+                Utils.generateDownloadUri(mContext,task.id), false, mObserver);
         try {
             countDownLatch.await();
         } catch (InterruptedException e) {
@@ -157,14 +158,13 @@ public class DownloadManagerTest {
         builder.setFileName(fileName);
         DownloadTask info = builder.build();
 
-        DownloadManager manager = DownloadManager.getInstance();
-        Uri uri = manager.doDownload(mContext, info);
+        Download manager = Download.getInstance();
+        DownloadTask task = manager.doDownload(mContext, info);
 
-        info.id = Utils.getDownloadId(mContext, uri);
-        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
+        ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
-            public void onProcessChange(Uri uri, long cur) {
-                super.onProcessChange(uri, cur);
+            public void onProcessChange(Uri uri, long cur,long length) {
+                super.onProcessChange(uri, cur,length);
                 Log.d(DownloadManagerTest.TAG, "进度发生改变：当前进度=" + cur);
             }
 
@@ -175,7 +175,9 @@ public class DownloadManagerTest {
                     countDownLatch.countDown();
             }
         };
-        mContext.getContentResolver().registerContentObserver(uri, false, mObserver);
+        mContext.getContentResolver().registerContentObserver(
+                Utils.generateDownloadUri(mContext,task.id),
+                false, mObserver);
         countDownLatch = new CountDownLatch(1);
         try {
             countDownLatch.await();
@@ -185,7 +187,7 @@ public class DownloadManagerTest {
 
         // 删除
 
-        int delete = DownloadManager.getInstance().deleteDownload(mContext, info);
+        int delete = Download.getInstance().deleteDownload(mContext, info);
         Assert.assertEquals(1, delete);
     }
 
@@ -206,16 +208,15 @@ public class DownloadManagerTest {
         final DownloadTask info = builder.build();
 
         // 开始下载
-        final DownloadManager manager = DownloadManager.getInstance();
-        Uri uri = manager.doDownload(mContext, info);
-        info.id = Utils.getDownloadId(mContext, uri);
+        final Download manager = Download.getInstance();
+        DownloadTask task = manager.doDownload(mContext, info);
         // 注册监听
-        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
+        ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
 
             @Override
-            public void onProcessChange(Uri uri, long cur) {
-                super.onProcessChange(uri, cur);
+            public void onProcessChange(Uri uri, long cur,long length) {
+                super.onProcessChange(uri, cur,length);
                 Log.d(DownloadManagerTest.TAG, "进度发生改变：当前进度=" + cur);
                 // 停止任务
                 if (!hasStop && cur > 200) {
@@ -233,7 +234,8 @@ public class DownloadManagerTest {
             }
         };
         mContext.getContentResolver()
-                .registerContentObserver(uri, false, mObserver);
+                .registerContentObserver(Utils.generateDownloadUri(mContext,task.id),
+                        false, mObserver);
 
         try {
             countDownLatch.await();
@@ -256,7 +258,7 @@ public class DownloadManagerTest {
         }
 
         // 删除
-        int delete = DownloadManager.getInstance().deleteDownload(mContext, info);
+        int delete = Download.getInstance().deleteDownload(mContext, info);
         Assert.assertEquals(1, delete);
 
         int i = ProviderHelper.queryStutas(mContext, info.id);
@@ -281,16 +283,15 @@ public class DownloadManagerTest {
         final DownloadTask info = builder.build();
 
         // 开始下载
-        final DownloadManager manager = DownloadManager.getInstance();
-        Uri uri = manager.doDownload(mContext, info);
-        info.id = Utils.getDownloadId(mContext, uri);
+        final Download manager = Download.getInstance();
+        DownloadTask task = manager.doDownload(mContext, info);
         // 注册监听
-        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
+        ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
 
             @Override
-            public void onProcessChange(Uri uri, long cur) {
-                super.onProcessChange(uri, cur);
+            public void onProcessChange(Uri uri, long cur,long length) {
+                super.onProcessChange(uri, cur,length);
                 Log.d(DownloadManagerTest.TAG, "进度发生改变：当前进度=" + cur);
                 // 停止任务
                 if (!hasStop && cur > 200) {
@@ -308,7 +309,9 @@ public class DownloadManagerTest {
                     countDownLatch.countDown();
             }
         };
-        mContext.getContentResolver().registerContentObserver(uri, false, mObserver);
+        mContext.getContentResolver().registerContentObserver(
+                Utils.generateDownloadUri(mContext,task.id),
+                false, mObserver);
         try {
             countDownLatch.await();
         } catch (InterruptedException e) {
@@ -343,7 +346,7 @@ public class DownloadManagerTest {
         File file = new File(doneInfo.destination_path, doneInfo.fileName);
         Assert.assertEquals(file.length(), doneInfo.total_bytes);
         // 删除
-        int delete = DownloadManager.getInstance().deleteDownload(mContext, info);
+        int delete = Download.getInstance().deleteDownload(mContext, info);
         Assert.assertEquals(1, delete);
         // 文件不存在
         boolean existFile = FileUtils.checkFileExist(doneInfo.destination_path, doneInfo.fileName);

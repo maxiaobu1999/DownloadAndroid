@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.malong.moses.partial.PartialInfo;
@@ -13,20 +14,20 @@ import com.malong.moses.utils.Utils;
 
 import java.util.List;
 
-public class DownloadManager {
+public class Download {
     public static final String TAG = "【DownloadManager】";
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
-    private volatile static DownloadManager sInstance;
+    private volatile static Download sInstance;
 
-    private DownloadManager() {
+    private Download() {
     }
 
-    public static DownloadManager getInstance() {
+    public static Download getInstance() {
         if (sInstance == null) {
-            synchronized (DownloadManager.class) {
+            synchronized (Download.class) {
                 if (sInstance == null) {
-                    sInstance = new DownloadManager();
+                    sInstance = new Download();
                 }
             }
         }
@@ -35,7 +36,7 @@ public class DownloadManager {
 
     // 下载
     @Nullable
-    public Uri doDownload(Context context, DownloadTask info) {
+    public static DownloadTask doDownload(Context context, DownloadTask info) {
         if (DEBUG) Log.d(TAG, "doDownload（）调用");
 
         Uri downloadUri;
@@ -43,14 +44,12 @@ public class DownloadManager {
         if (oldInfo == null) {
             // 3、没有旧的新增
             downloadUri = ProviderHelper.insert(context, info);
-            return downloadUri;
         } else {
             // 之前下载过，
             downloadUri = Utils.generateDownloadUri(context, oldInfo.id);
             //检查是否正在下载
             if (oldInfo.status == DownloadTask.STATUS_RUNNING) {
                 // 1、正在下载/下载完成，无需重复操作
-                return downloadUri;
             } else if (oldInfo.status == DownloadTask.STATUS_SUCCESS) {
                 // 已经下载成功过，检查文件是否存在
                 if (FileUtils.checkFileExist(info.destination_path, info.fileName)) {
@@ -58,19 +57,18 @@ public class DownloadManager {
                     ProviderHelper.updateStatus(context, DownloadTask.STATUS_SUCCESS, oldInfo);
                 } else {
                     // 文件不存在了，需要重新下载
-                    downloadUri = reDownload(context, info);
+                    return reDownload(context, info);
                 }
             } else {
                 // 2、更新状态为PENDING，别的不改
                 ProviderHelper.updateStatus(context, DownloadTask.STATUS_PENDING, oldInfo);
-                return downloadUri;
             }
-            return downloadUri;
         }
+        return ProviderHelper.queryDownloadInfo(context, downloadUri);
     }
 
     // 停止
-    public void pauseDownload(Context context, DownloadTask info) {
+    public static void pauseDownload(Context context, DownloadTask info) {
         if (DEBUG) {
             Log.d(TAG, "pauseDownload（）调用");
         }
@@ -85,7 +83,7 @@ public class DownloadManager {
     }
 
     // 继续下载
-    public void resumeDownload(Context context, DownloadTask info) {
+    public static void resumeDownload(Context context, DownloadTask info) {
         if (DEBUG) {
             Log.d(TAG, "resumeDownload（）调用");
         }
@@ -94,8 +92,14 @@ public class DownloadManager {
 
 
     // 取消
-    public int cancelDownload(Context context, DownloadTask info) {
-        int deleteNum = ProviderHelper.delete(context, info);
+    public static int cancelDownload(Context context, DownloadTask info) {
+        int deleteNum;
+        if (info.id < 0) {
+            DownloadTask oldInfo = ProviderHelper.queryOldDownload(context, info);
+            deleteNum = ProviderHelper.delete(context, oldInfo);
+        } else {
+            deleteNum = ProviderHelper.delete(context, info);
+        }
         // 删除分片
         PartialProviderHelper.delete(context, info);
         return deleteNum;
@@ -103,7 +107,7 @@ public class DownloadManager {
 
 
     // 删除 删除记录，删除文件
-    public int deleteDownload(Context context, DownloadTask info) {
+    public static int deleteDownload(Context context, DownloadTask info) {
         int cancel = cancelDownload(context, info);// 删除表数据
         FileUtils.deleteFile(info.destination_path + info.fileName);// 删除文件
         return cancel;
@@ -111,10 +115,33 @@ public class DownloadManager {
 
 
     // 重新下载
-    public Uri reDownload(Context context, DownloadTask info) {
+    public static DownloadTask reDownload(Context context, DownloadTask info) {
         int cancel = cancelDownload(context, info);// 删除表数据
         FileUtils.deleteFile(info.destination_path + info.fileName);// 删除文件
         return doDownload(context, info);
     }
+
+    // 获取下载项的状态
+    public static int getTaskStatus(Context context, DownloadTask info) {
+        return ProviderHelper.queryStutas(context, info);
+    }
+
+    /**
+     * 更新下载内容，之前下载过则返回旧的，没有则返回参数的信息
+     */
+    @NonNull
+    public static DownloadTask convertDownloadInfo(Context context, DownloadTask info) {
+        DownloadTask downloadTask;
+        if (info.id <= 0) {
+            // 没有设置ID
+            downloadTask = ProviderHelper.queryOldDownload(context, info);
+        } else {
+            // 用ID查信息
+            downloadTask = ProviderHelper.queryDownloadInfo(context, info.id);
+        }
+        if (downloadTask != null) info = downloadTask;
+        return info;
+    }
+
 
 }

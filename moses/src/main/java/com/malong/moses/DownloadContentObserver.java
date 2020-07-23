@@ -21,7 +21,7 @@ public class DownloadContentObserver extends ContentObserver {
      * @param context context
      */
     //@param uri     URI content://com.norman.malong.downloads/my_downloads/3
-    public DownloadContentObserver(Context context,Uri uri) {
+    public DownloadContentObserver(Context context) {
         super(new Handler(Looper.getMainLooper()));
         mContext = context;
 //        DownloadInfo downloadInfo = DownloadHelper.queryDownloadInfo(mContext, uri);
@@ -42,7 +42,9 @@ public class DownloadContentObserver extends ContentObserver {
                 @SuppressWarnings("ConstantConditions")
                 long current_bytes = Long.parseLong(
                         uri.getQueryParameter(Constants.KEY_PROCESS));
-                onProcessChange(uri,current_bytes);
+                long length = Long.parseLong(
+                        uri.getQueryParameter(Constants.KEY_LENGTH));
+                onProcessChange(uri,current_bytes,length);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -90,7 +92,7 @@ public class DownloadContentObserver extends ContentObserver {
     }
 
     /** 进度变更回调 */
-    public void onProcessChange(Uri uri,long cur) {
+    public void onProcessChange(Uri uri,long cur,long length) {
 
     }
     /** 状态变更回调 */

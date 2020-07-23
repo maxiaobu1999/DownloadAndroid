@@ -100,14 +100,19 @@ public class PartialProviderHelper {
     }
 
     public static void updatePartialProcess(Context context, PartialInfo info) {
-        Uri uri = Utils.generatePartialBUri(context, info.id);
+        Uri uri = Utils.generatePartialBUri(context,info.id);
         ContentValues values = new ContentValues();
-        values.put(Constants.COLUMN_CURRENT_BYTES, info.current_bytes);
+        values.put(Constants.PARTIAL_CURRENT_BYTES, info.current_bytes);
         int update = context.getContentResolver().update(uri,
                 values,
                 Constants._ID + "=?",
                 new String[]{String.valueOf(info.id)}
         );
+        Uri destUri = Utils.getDownloadBaseUri(context).buildUpon().appendPath(String.valueOf(info.id))
+                .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(info.current_bytes))
+                .appendQueryParameter(Constants.KEY_LENGTH, String.valueOf(info.total_bytes))
+                .fragment(Constants.KEY_PROCESS_CHANGE).build();
+        context.getContentResolver().notifyChange(destUri, null);
     }
 
 

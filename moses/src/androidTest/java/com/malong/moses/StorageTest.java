@@ -84,15 +84,16 @@ public class StorageTest {
         builder.setFileName(fileName);
         DownloadTask info = builder.build();
 
-        DownloadManager manager = DownloadManager.getInstance();
-        Uri uri = manager.doDownload(mContext, info);
-        ContentObserver mObserver = new DownloadContentObserver(mContext, uri) {
+        Download manager = Download.getInstance();
+       DownloadTask task = manager.doDownload(mContext, info);
+        ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(TAG, "状态发生改变：当前状态=" + status);
             }
         };
-        mContext.getContentResolver().registerContentObserver(uri, false, mObserver);
+        mContext.getContentResolver().registerContentObserver(
+                Utils.generateDownloadUri(mContext,task.id), false, mObserver);
         countDownLatch = new CountDownLatch(1);
         try {
             countDownLatch.await();

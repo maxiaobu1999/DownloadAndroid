@@ -30,7 +30,9 @@ public class ProviderHelper {
 
 
     public static void updateProcess(Context context, DownloadTask info) {
-        Uri uri = Utils.generateDownloadUri(context, info.id);
+
+
+        Uri uri = Utils.generateDownloadUri(context,info.id);
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_CURRENT_BYTES, info.current_bytes);
         int update = context.getContentResolver().update(uri,
@@ -38,6 +40,11 @@ public class ProviderHelper {
                 Constants._ID + "=?",
                 new String[]{String.valueOf(info.id)}
         );
+        Uri destUri = Utils.getDownloadBaseUri(context).buildUpon().appendPath(String.valueOf(info.id))
+                .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(info.current_bytes))
+                .appendQueryParameter(Constants.KEY_LENGTH, String.valueOf(info.total_bytes))
+                .fragment(Constants.KEY_PROCESS_CHANGE).build();
+        context.getContentResolver().notifyChange(destUri, null);
     }
 
     // 查询下载条目
@@ -82,7 +89,31 @@ public class ProviderHelper {
                 new String[]{String.valueOf(id)}, null, null
         );
         if (cursor == null || !cursor.moveToFirst()) {
-            return -1;
+            return DownloadTask.STATUS_NONE;
+        }
+        int status = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_STATUS));
+        Closeables.closeSafely(cursor);
+        return status;
+    }
+
+    // 查询状态
+    public static int queryStutas(Context context, DownloadTask info) {
+        int id = info.id;
+        if (id <= 0) {
+            // 没有设置id，表示需要根据内容查找对应的ID
+            DownloadTask downloadTask = queryOldDownload(context, info);
+            if (downloadTask != null) {
+                id= downloadTask.id;
+            }
+        }
+        // 用id去查内容
+        Cursor cursor = context.getContentResolver().query(Utils.generateDownloadUri(context,id),
+                new String[]{Constants.COLUMN_STATUS},
+                Constants._ID + "=?",
+                new String[]{String.valueOf(id)}, null, null
+        );
+        if (cursor == null || !cursor.moveToFirst()) {
+            return DownloadTask.STATUS_NONE;// 还没有 return none 表示没有记录
         }
         int status = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_STATUS));
         Closeables.closeSafely(cursor);
@@ -104,11 +135,11 @@ public class ProviderHelper {
     public static int updateStatus(Context context, int oldStatus, int newStatus) {
         if (DEBUG) Log.d(TAG, "更新状态updateStutas():" + ";状态" + oldStatus + "变为" + newStatus);
         ContentValues values = new ContentValues();
-        values.put(Constants.COLUMN_STATUS,oldStatus);
+        values.put(Constants.COLUMN_STATUS, oldStatus);
         return context.getContentResolver()
                 .update(Utils.getDownloadBaseUri(context),
-                values, Constants.COLUMN_STATUS + "=?"
-                , new String[]{String.valueOf(  newStatus)});
+                        values, Constants.COLUMN_STATUS + "=?"
+                        , new String[]{String.valueOf(newStatus)});
     }
 
     // 更新，不含status & 下载进度
@@ -187,8 +218,6 @@ public class ProviderHelper {
     @Nullable
     public static DownloadTask queryOldDownload(Context context, DownloadTask info) {
         ContentResolver resolver = context.getContentResolver();
-        ContentValues values = info.info2ContentValues();
-        Uri downloadUri;
         // 检查之前下载过
         Cursor cursor = null;
         if (!TextUtils.isEmpty(info.destination_uri) && !TextUtils.isEmpty(info.fileName)) {
@@ -222,7 +251,9 @@ public class ProviderHelper {
         return null;
     }
 
-    /** 插入新条目，主键无意义都会自增 */
+    /**
+     * 插入新条目，主键无意义都会自增
+     */
     @Nullable
     public static Uri insert(Context context, DownloadTask info) {
         ContentValues values = info.info2ContentValues();
@@ -232,10 +263,10 @@ public class ProviderHelper {
             if (DEBUG) Log.e(TAG, "insert()：插入失败");
             return null;
         }
-        Utils.notifyChange(context,downloadUri,null);
+        Utils.notifyChange(context, downloadUri, null);
         // 通知service
         Bundle bundle = new Bundle();
-        bundle.putInt(Constants.KEY_ID, Utils.getDownloadId(context,downloadUri));
+        bundle.putInt(Constants.KEY_ID, Utils.getDownloadId(context, downloadUri));
         bundle.putInt(Constants.KEY_STATUS, DownloadTask.STATUS_PENDING);// 新增一定是PENDING
         bundle.putString(Constants.KEY_URI, downloadUri.toString());
         if (DEBUG) Log.d(TAG, "insert(）新增下载:" + downloadUri.toString());
@@ -243,7 +274,9 @@ public class ProviderHelper {
         return downloadUri;
     }
 
-    /** 删除新条目 */
+    /**
+     * 删除新条目
+     */
     public static int delete(Context context, DownloadTask info) {
         ContentResolver resolver = context.getContentResolver();
         int deleteNum = resolver.delete(Utils.getDownloadBaseUri(context),

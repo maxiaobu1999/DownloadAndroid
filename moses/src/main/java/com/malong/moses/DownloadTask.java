@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DownloadTask {
+    /** 啥记录没有 */
+    public static final int STATUS_NONE = 0;
     /** 准备开始下载 */
     public static final int STATUS_PENDING = 100;
     /** 正在下载 */

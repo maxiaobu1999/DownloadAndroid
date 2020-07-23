@@ -177,8 +177,8 @@ public class PartialCallable implements Callable<DownloadTask> {
         }
 
         @Override
-        public void onProcessChange(Uri uri, long cur) {
-            super.onProcessChange(uri, cur);
+        public void onProcessChange(Uri uri, long cur,long length) {
+            super.onProcessChange(uri, cur,length);
             Log.d(PartialCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
             updateProcess(uri, cur);
         }

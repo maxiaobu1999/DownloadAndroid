@@ -8,7 +8,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -117,7 +116,7 @@ public final class DownloadProvider {
     /**
      * 向ContentProvider中添加一条数据。
      * <p>
-     *     主键在这里传不传一样，都会新增主键自增
+     * 主键在这里传不传一样，都会新增主键自增
      *
      * @param uri    CP的授权信息
      * @param values 保存待添加的数据
@@ -171,21 +170,21 @@ public final class DownloadProvider {
      */
     public int update(@NonNull Uri uri, @Nullable ContentValues values,
                       @Nullable String selection, @Nullable String[] selectionArgs) {
-        if (DEBUG) {
-            String sValues = "null";
-            StringBuilder builder = new StringBuilder();
-            if (values != null) {
-                sValues = values.toString();
-            }
-            if (selectionArgs != null) {
-                for (String selectionArg : selectionArgs) {
-                    builder.append(selectionArg).append("+");
-                }
-            }
-            Log.d(TAG, "update调用values=" + sValues + ";selection="
-                    + selection + ";selectionArgs=" + builder.toString()
-            + ";uri="+uri.toString());
-        }
+//        if (DEBUG) {
+//            String sValues = "null";
+//            StringBuilder builder = new StringBuilder();
+//            if (values != null) {
+//                sValues = values.toString();
+//            }
+//            if (selectionArgs != null) {
+//                for (String selectionArg : selectionArgs) {
+//                    builder.append(selectionArg).append("+");
+//                }
+//            }
+//            Log.d(TAG, "update调用values=" + sValues + ";selection="
+//                    + selection + ";selectionArgs=" + builder.toString()
+//            + ";uri="+uri.toString());
+//        }
         if (values == null) {
             return 0;
         }
@@ -227,10 +226,11 @@ public final class DownloadProvider {
                     }
                 } else if (values.containsKey(Constants.COLUMN_CURRENT_BYTES)) {
                     //  2、下载进度发生改变
-                    long process = (long) values.get(Constants.COLUMN_CURRENT_BYTES);
-                    destUri = Utils.getDownloadBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
-                            .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(process))
-                            .fragment(Constants.KEY_PROCESS_CHANGE).build();
+//                    long process = (long) values.get(Constants.COLUMN_CURRENT_BYTES);
+//                    destUri = Utils.getDownloadBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
+//                            .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(process))
+//                            .appendQueryParameter(Constants.KEY_LENGTH, String.valueOf(process))
+//                            .fragment(Constants.KEY_PROCESS_CHANGE).build();
 
                 }
                 if (destUri != null)
@@ -275,13 +275,13 @@ public final class DownloadProvider {
                                 .fragment(Constants.KEY_STATUS_CHANGE).build();
                     }
                 } else if (values.containsKey(Constants.PARTIAL_CURRENT_BYTES)) {
-                    //  2、下载进度发生改变
-                    long process = (long) values.get(Constants.PARTIAL_CURRENT_BYTES);
-                    destUri = Utils.getPartialBaseUri(mContext).buildUpon()
-                            .appendPath(String.valueOf(info.id))
-                            .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
-                            .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(process))
-                            .fragment(Constants.KEY_PROCESS_CHANGE).build();
+//                    //  2、下载进度发生改变
+//                    long process = (long) values.get(Constants.PARTIAL_CURRENT_BYTES);
+//                    destUri = Utils.getPartialBaseUri(mContext).buildUpon()
+//                            .appendPath(String.valueOf(info.id))
+//                            .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
+//                            .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(process))
+//                            .fragment(Constants.KEY_PROCESS_CHANGE).build();
 
                 }
                 if (destUri != null)
@@ -335,6 +335,12 @@ public final class DownloadProvider {
                     .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
                     .fragment(Constants.KEY_STATUS_CHANGE).build();
             mContext.getContentResolver().notifyChange(destUri, null);
+            Uri processUri = Utils.getDownloadBaseUri(mContext).buildUpon()
+                    .appendPath(String.valueOf(info.id))
+                    .appendQueryParameter(Constants.KEY_LENGTH, String.valueOf(info.total_bytes))
+                    .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(0))
+                    .fragment(Constants.KEY_PROCESS_CHANGE).build();
+            mContext.getContentResolver().notifyChange(processUri, null);
 
 
         } else if (URI_MATCHER.match(uri) == URI_MATCHER_PARTIAL) {
