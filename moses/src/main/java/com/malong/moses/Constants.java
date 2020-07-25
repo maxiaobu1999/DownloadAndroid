@@ -11,6 +11,9 @@ public class Constants {
     public static final String KEY_STATUS = "status";
     public static final String KEY_STATUS_CHANGE = "status_change";
     public static final String KEY_PROCESS_CHANGE = "process_change";
+    public static final String KEY_BLOCK_PREPARE = "block_prepare";
+    public static final String KEY_BLOCK_STATUS_CHANGE = "block_status_change";
+    public static final String KEY_BLOCK_PROCESS_CHANGE = "block_process_change";
     public static final String KEY_PROCESS = "process";
     public static final String KEY_LENGTH = "length";
     public static final String KEY_ID = "id";

@@ -30,8 +30,6 @@ public class ProviderHelper {
 
 
     public static void updateProcess(Context context, DownloadTask info) {
-
-
         Uri uri = Utils.generateDownloadUri(context,info.id);
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_CURRENT_BYTES, info.current_bytes);

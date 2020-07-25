@@ -1,6 +1,7 @@
 package com.malong.moses;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 
@@ -9,6 +10,7 @@ import androidx.annotation.Nullable;
 
 import com.malong.moses.partial.PartialInfo;
 import com.malong.moses.partial.PartialProviderHelper;
+import com.malong.moses.utils.Closeables;
 import com.malong.moses.utils.FileUtils;
 import com.malong.moses.utils.Utils;
 
@@ -141,6 +143,12 @@ public class Download {
         }
         if (downloadTask != null) info = downloadTask;
         return info;
+    }
+
+    // 查询分片下载条目
+    @NonNull
+    public static List<PartialInfo> queryPartialInfoList(Context context, int downloadId) {
+        return  PartialProviderHelper.queryPartialInfoList(context,downloadId);
     }
 
 

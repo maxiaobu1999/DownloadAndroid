@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
+import com.malong.moses.listener.DownloadListener;
 import com.malong.moses.utils.FileUtils;
 import com.malong.moses.utils.Utils;
 

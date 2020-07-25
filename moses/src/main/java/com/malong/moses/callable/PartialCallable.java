@@ -8,6 +8,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.malong.moses.BlockContentObserver;
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
 import com.malong.moses.DownloadContentObserver;
@@ -117,7 +118,7 @@ public class PartialCallable implements Callable<DownloadTask> {
                 info.download_id = mInfo.id;
                 info.num = i;
                 info.current_bytes = 0;
-                info.total_bytes = mInfo.total_bytes;
+                info.total_bytes = end - start;
                 info.download_url = mInfo.download_url;
                 info.destination_uri = mInfo.destination_uri;
                 info.destination_path = mInfo.destination_path;
@@ -149,43 +150,61 @@ public class PartialCallable implements Callable<DownloadTask> {
             }
         }
 
+        // notify block  prepare listener
+        Uri blockPrepareUri= Utils.getDownloadBaseUri(mContext).buildUpon()
+                .appendPath(String.valueOf(mInfo.id))
+                .fragment(Constants.KEY_BLOCK_PREPARE).build();
+        mContext.getContentResolver().notifyChange(blockPrepareUri,null);
+
 
         Looper.loop();
         return mInfo;
     }
 
-    private void updateProcess(Uri uri, long cur) {
+    private void updateProcess(Uri uri) {
         String s = uri.getQueryParameter(Constants.KEY_PARTIAL_NUM);
         if (!TextUtils.isEmpty(s)) {
-            int partialNum = Integer.parseInt(s);
-            mProcessList[partialNum] = cur;
+            @SuppressWarnings("ConstantConditions")
+            long cur = Long.parseLong(uri.getQueryParameter(Constants.KEY_PROCESS));
+            int partialIndex = Integer.parseInt(s);
+            mProcessList[partialIndex] = cur;
             long curProcess = 0;
             for (long atomicLong : mProcessList) {
                 curProcess += atomicLong;
             }
             mInfo.current_bytes = curProcess;
+            if (DEBUG) Log.d(TAG, "总进度:" + mInfo.current_bytes);
+
             ProviderHelper.updateProcess(mContext, mInfo);
-            Log.d(TAG, "size:" + mInfo.current_bytes);
+            // 通知host uri observer
+            Uri downloadUri = Utils.getDownloadBaseUri(mContext).buildUpon()
+                    .appendPath(String.valueOf(mInfo.id))
+                    .appendQueryParameter(Constants.KEY_PROCESS, uri.getQueryParameter(Constants.KEY_PROCESS))
+                    .appendQueryParameter(Constants.KEY_LENGTH, uri.getQueryParameter(Constants.KEY_LENGTH))
+                    .appendQueryParameter(Constants.KEY_PARTIAL_NUM, uri.getQueryParameter(Constants.KEY_PARTIAL_NUM))
+                    .fragment(Constants.KEY_BLOCK_PROCESS_CHANGE).build();
+            if (DEBUG) Log.d(TAG, downloadUri.toString());
+            mContext.getContentResolver().notifyChange(downloadUri, null);
         }
     }
 
 
-    class PartialObserver extends DownloadContentObserver {
+    class PartialObserver extends BlockContentObserver {
 
         PartialObserver(Handler handler) {
             super(handler);
         }
 
         @Override
-        public void onProcessChange(Uri uri, long cur,long length) {
-            super.onProcessChange(uri, cur,length);
-            Log.d(PartialCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
-            updateProcess(uri, cur);
+        public void onProcessChange(Uri uri, long cur, long length) {
+            super.onProcessChange(uri, cur, length);
+            if (DEBUG) Log.d(PartialCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
+            updateProcess(uri);
         }
 
         @Override
         public void onStatusChange(Uri uri, int status) {
-            Log.d(PartialCallable.TAG, "状态发生改变：当前状态" + uri.toString() + "=" + status);
+            if (DEBUG) Log.d(PartialCallable.TAG, "状态发生改变：当前状态" + uri.toString() + "=" + status);
             if (status == PartialInfo.STATUS_SUCCESS) {
                 mContext.getContentResolver().unregisterContentObserver(this);
                 doneNum++;
@@ -196,7 +215,7 @@ public class PartialCallable implements Callable<DownloadTask> {
                 }
             } else if (status == PartialInfo.STATUS_STOP
                     || status == PartialInfo.STATUS_CANCEL) {// 停止
-                Log.d(TAG, "onStatusChange停止");
+                if (DEBUG) Log.d(TAG, "onStatusChange停止");
                 for (ContentObserver observer : observers) {
                     mContext.getContentResolver().unregisterContentObserver(observer);
 

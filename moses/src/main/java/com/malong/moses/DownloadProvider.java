@@ -211,7 +211,7 @@ public final class DownloadProvider {
                         continue;
                     }
                     int curStatus = (int) values.get(Constants.COLUMN_STATUS);
-                    if (info.status != curStatus) {// 保证状态发生改变
+//                    if (info.status != curStatus) {// 保证状态发生改变
                         // 状态发生改变通知 service
                         Bundle bundle = new Bundle();
                         bundle.putInt(Constants.KEY_ID, info.id);
@@ -223,7 +223,7 @@ public final class DownloadProvider {
                                 .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(curStatus))
                                 .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
                                 .fragment(Constants.KEY_STATUS_CHANGE).build();
-                    }
+//                    }
                 } else if (values.containsKey(Constants.COLUMN_CURRENT_BYTES)) {
                     //  2、下载进度发生改变
 //                    long process = (long) values.get(Constants.COLUMN_CURRENT_BYTES);
@@ -272,7 +272,7 @@ public final class DownloadProvider {
                                 .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
                                 .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(curStatus))
                                 .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
-                                .fragment(Constants.KEY_STATUS_CHANGE).build();
+                                .fragment(Constants.KEY_BLOCK_STATUS_CHANGE).build();
                     }
                 } else if (values.containsKey(Constants.PARTIAL_CURRENT_BYTES)) {
 //                    //  2、下载进度发生改变
@@ -362,7 +362,6 @@ public final class DownloadProvider {
                     .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
                     .fragment(Constants.KEY_STATUS_CHANGE).build();
             mContext.getContentResolver().notifyChange(destUri, null);
-
         }
 
 

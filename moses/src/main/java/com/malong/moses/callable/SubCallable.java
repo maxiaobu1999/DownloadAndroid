@@ -50,8 +50,9 @@ public class SubCallable implements Callable<PartialInfo> {
         httpInfo.end_index = mInfo.end_index;
         // 已经下载完的
         if (httpInfo.start_index >= httpInfo.end_index) {
-            mInfo.status = DownloadTask.STATUS_SUCCESS;
-            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
+//            mInfo.status = DownloadTask.STATUS_SUCCESS;
+//            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
+            PartialProviderHelper.updatePartialStutas(mContext, PartialInfo.STATUS_SUCCESS, mInfo);
             return mInfo;
         }
 
@@ -66,13 +67,12 @@ public class SubCallable implements Callable<PartialInfo> {
         try {
             raf = new RandomAccessFile(destFile, "rw");
             raf.seek(mInfo.start_index + mInfo.current_bytes);
-            final int defaultBufferSize = 1024 * 3;
+            final int defaultBufferSize = 4096;
             byte[] buf = new byte[defaultBufferSize];
             long size = mInfo.current_bytes;
             int len;
             while ((len = is.read(buf)) > 0) {
                 // 响应task。cancelDownload()
-                Log.d(TAG, "isInterrupted():" + mThread.cancel);
                 if (mThread.cancel) {
                     mThread.cancel = false;
                     if (DEBUG) Log.d(TAG, "任务被取消");
@@ -81,18 +81,20 @@ public class SubCallable implements Callable<PartialInfo> {
                 raf.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
-                Log.d(TAG, "size:" + size);
+                if (DEBUG) Log.d(TAG, " mInfo.current_bytes="+ mInfo.current_bytes);
+
                 PartialProviderHelper.updatePartialProcess(mContext, mInfo);
             }
             // 下载完成
-            mInfo.status = DownloadTask.STATUS_SUCCESS;
-            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
+//            mInfo.status = DownloadTask.STATUS_SUCCESS;
+            PartialProviderHelper.updatePartialStutas(mContext, DownloadTask.STATUS_SUCCESS,mInfo);
         } catch (InterruptedIOException e) {
             // 下载被取消,finally会执行
         } catch (Exception e) {
             e.printStackTrace();
-            mInfo.status = DownloadTask.STATUS_FAIL;
-            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
+//            mInfo.status = DownloadTask.STATUS_FAIL;
+//            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
+            PartialProviderHelper.updatePartialStutas(mContext, DownloadTask.STATUS_FAIL,mInfo);
         } finally {
             Closeables.closeSafely(is);
             connection.close();

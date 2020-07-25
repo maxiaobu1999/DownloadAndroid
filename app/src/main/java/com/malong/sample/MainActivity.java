@@ -34,6 +34,11 @@ public class MainActivity extends BaseListActivity {
     protected void setupAdapter(BaseListActivity.ItemsHolder holder) {
         holder.addItem(R.string.single_common_download_title, R.string.single_common_download_desc,
                 SingleActivity.class);
+        holder.addItem(R.string.single_breakpoint_download_title, R.string.single_breakpoint_download_desc,
+                SingleBreakpointActivity.class);
+ holder.addItem(R.string.single_partial_download_title, R.string.single_partial_download_desc,
+                SingleBlockActivity.class);
+
 //        holder.addItem(R.string.each_block_progress_title, R.string.each_block_progress_desc,
 //                EachBlockProgressActivity.class);
 //        holder.addItem(R.string.queue_download_title, R.string.queue_download_desc,

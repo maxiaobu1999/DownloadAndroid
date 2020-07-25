@@ -11,6 +11,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.malong.moses.BuildConfig;
 import com.malong.moses.Constants;
 import com.malong.moses.DownloadTask;
 import com.malong.moses.utils.Closeables;
@@ -67,21 +68,21 @@ public class PartialProviderHelper {
         return infoList;
     }
 
-    // 状态改变
-    public static int onPartialStatusChange(Context context, PartialInfo info) {
-        Uri uri = Utils.generatePartialBUri(context, info.id);
-        ContentValues values = new ContentValues();
-        values.put(Constants.COLUMN_STATUS, info.status);
-        int update = context.getContentResolver().update(uri,
-                values,
-                Constants._ID + "=?",
-                new String[]{String.valueOf(info.id)}
-        );
-//        if (update > 0) {
-//            context.getContentResolver().notifyChange(uri, null);
-//        }
-        return update;
-    }
+//    // 状态改变
+//    public static int onPartialStatusChange(Context context, PartialInfo info) {
+//        Uri uri = Utils.generatePartialBUri(context, info.id);
+//        ContentValues values = new ContentValues();
+//        values.put(Constants.COLUMN_STATUS, info.status);
+//        int update = context.getContentResolver().update(uri,
+//                values,
+//                Constants._ID + "=?",
+//                new String[]{String.valueOf(info.id)}
+//        );
+////        if (update > 0) {
+////            context.getContentResolver().notifyChange(uri, null);
+////        }
+//        return update;
+//    }
 
     // 更新状态
     public static int updatePartialStutas(Context context, int status, PartialInfo info) {
@@ -99,8 +100,9 @@ public class PartialProviderHelper {
                 , new String[]{String.valueOf(info.id)});
     }
 
+    /** 修改分片进度 */
     public static void updatePartialProcess(Context context, PartialInfo info) {
-        Uri uri = Utils.generatePartialBUri(context,info.id);
+        Uri uri = Utils.generatePartialBUri(context, info.id);
         ContentValues values = new ContentValues();
         values.put(Constants.PARTIAL_CURRENT_BYTES, info.current_bytes);
         int update = context.getContentResolver().update(uri,
@@ -108,11 +110,15 @@ public class PartialProviderHelper {
                 Constants._ID + "=?",
                 new String[]{String.valueOf(info.id)}
         );
-        Uri destUri = Utils.getDownloadBaseUri(context).buildUpon().appendPath(String.valueOf(info.id))
+        Uri destUri = Utils.getPartialBaseUri(context).buildUpon()
+                .appendPath(String.valueOf(info.id))
+                .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
                 .appendQueryParameter(Constants.KEY_PROCESS, String.valueOf(info.current_bytes))
                 .appendQueryParameter(Constants.KEY_LENGTH, String.valueOf(info.total_bytes))
-                .fragment(Constants.KEY_PROCESS_CHANGE).build();
+                .fragment(Constants.KEY_BLOCK_PROCESS_CHANGE).build();
         context.getContentResolver().notifyChange(destUri, null);
+
+
     }
 
 

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Download Sample</string>
+    <string name="app_name">摩西</string>
 
     <string name="github_url">https://github.com/lingochamp/okdownload</string>
     <string name="title_single">Single</string>
@@ -28,6 +28,10 @@
     <!-- entry list -->
     <string name="single_common_download_title">Single 普通下载</string>
     <string name="single_common_download_desc">最简单普通下载示例</string>
+    <string name="single_breakpoint_download_title">Single 断点续传下载</string>
+    <string name="single_breakpoint_download_desc">最简单断点续传下载示例</string>
+    <string name="single_partial_download_title">Single 分片下载</string>
+    <string name="single_partial_download_desc">最简单分片+续传下载示例</string>
     <string name="each_block_progress_title">Show Each Block Progress</string>
     <string name="each_block_progress_desc">On this demo we will download a task and display each block progress for it.</string>
     <string name="queue_download_title">Queue Download</string>

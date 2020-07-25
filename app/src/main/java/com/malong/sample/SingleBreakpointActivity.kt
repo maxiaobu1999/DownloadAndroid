@@ -13,10 +13,10 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import com.malong.moses.Constants
 import com.malong.moses.Download
 import com.malong.moses.listener.DownloadListener
 import com.malong.moses.DownloadTask
+import com.malong.moses.utils.FileUtils
 import com.malong.moses.utils.MimeTypeUtils
 import com.malong.moses.utils.SpeedCalculator
 import com.malong.sample.base.BaseSampleActivity
@@ -24,10 +24,10 @@ import com.malong.sample.util.DemoUtil
 import java.io.File
 
 
-/** 最简单下载演示 */
-class SingleActivity : BaseSampleActivity() {
+/** 断点续传 最简单下载演示 */
+class SingleBreakpointActivity : BaseSampleActivity() {
     companion object {
-        private const val TAG = "【SingleActivity】"
+        private const val TAG = "【SingleBreakpointAty】"
     }
 
     private var task: DownloadTask? = null
@@ -55,7 +55,7 @@ class SingleActivity : BaseSampleActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mActivity = this
-        setContentView(R.layout.activity_single)
+        setContentView(R.layout.activity_single_breakpoint)
         statusTv = findViewById<View>(R.id.statusTv) as TextView
         progressBar = findViewById<View>(R.id.progressBar) as ProgressBar
         actionView = findViewById(R.id.actionView)
@@ -65,7 +65,7 @@ class SingleActivity : BaseSampleActivity() {
         init()
     }
 
-    override fun titleRes(): Int = R.string.single_common_download_title
+    override fun titleRes(): Int = R.string.single_breakpoint_download_title
 
     override fun onDestroy() {
         super.onDestroy()
@@ -81,16 +81,16 @@ class SingleActivity : BaseSampleActivity() {
 
     /** 配置下载任务信息 */
     private fun initTask() {
-        val filename =  Constants.IMAGE_NAME
-        val url = Constants.BASE_URL + Constants.IMAGE_NAME
-//        val url =
-//            "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
+//        val url = Constants.BASE_URL + Constants.IMAGE_NAME
+        val url = "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
+        val filename = FileUtils.getFileNameFromUrl(url)
 //        val url = "https://cdn.llscdn.com/yy/files/xs8qmxn8-lls-LLS-5.8-800-20171207-111607.apk"
         val parentFile = DemoUtil.getParentFile(this)
         task = DownloadTask.Builder()
             .setDescription_path(parentFile.toString())
-            .setFileName(filename)
+            .setFileName(filename!!)
             .setDownloadUrl(url)
+            .setMethod(DownloadTask.METHOD_BREAKPOINT)
             .build()
     }
 
@@ -146,7 +146,7 @@ class SingleActivity : BaseSampleActivity() {
                 if (it.status == DownloadTask.STATUS_SUCCESS) {
                     openFile(mActivity!!, it.destination_path + it.fileName)
                 } else {
-                    Toast.makeText(mActivity!!,"没下载完呢",Toast.LENGTH_LONG).show()
+                    Toast.makeText(mActivity!!,"没下载完呢", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -207,7 +207,8 @@ class SingleActivity : BaseSampleActivity() {
     fun openFile(context: Context, file: String?) {
         try {
             val contentUri: Uri = FileProvider.getUriForFile(context,
-                context.packageName+".fileprovider", File(file))
+                context.packageName+".fileprovider", File(file)
+            )
             val intent = Intent()
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION )

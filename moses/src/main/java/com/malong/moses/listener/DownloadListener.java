@@ -1,14 +1,18 @@
-package com.malong.moses;
+package com.malong.moses.listener;
 
 import android.content.Context;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Handler;
 
+import com.malong.moses.DownloadContentObserver;
+import com.malong.moses.DownloadTask;
 import com.malong.moses.utils.Utils;
 
 /**
  * 下载的监听
+ *
+ *  stop
  */
 public class DownloadListener {
     Context mContext;

@@ -72,7 +72,7 @@ public class DownloadService extends Service {
                 return new CancelableThread(r);
             }
         };
-        mExecutor = Executors.newFixedThreadPool(2, threadFactory);
+        mExecutor = Executors.newFixedThreadPool(10, threadFactory);
     }
 
     @Override
