@@ -6,7 +6,7 @@ import android.net.Uri;
 import android.os.Handler;
 
 import com.malong.moses.DownloadContentObserver;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.utils.Utils;
 
 /**
@@ -16,7 +16,7 @@ import com.malong.moses.utils.Utils;
  */
 public class DownloadListener {
     Context mContext;
-    DownloadTask mTask;
+    Request mTask;
     private ContentObserver mObserver;
 
 

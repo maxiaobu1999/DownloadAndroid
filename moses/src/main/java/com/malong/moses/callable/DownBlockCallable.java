@@ -11,14 +11,13 @@ import android.util.Log;
 import com.malong.moses.BlockContentObserver;
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadContentObserver;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.ProviderHelper;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
 import com.malong.moses.connect.ResponseInfo;
-import com.malong.moses.partial.PartialInfo;
-import com.malong.moses.partial.PartialProviderHelper;
+import com.malong.moses.block.BlockInfo;
+import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.utils.Utils;
 
 import java.lang.reflect.Field;
@@ -31,11 +30,11 @@ import java.util.concurrent.Callable;
  * 1\每个分片的进度
  * 2、
  */
-public class PartialCallable implements Callable<DownloadTask> {
-    public static final String TAG = "【PartialCallable】";
+public class DownBlockCallable implements Callable<Request> {
+    public static final String TAG = "【DownBlockCallable】";
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
-    private DownloadTask mInfo;
+    private Request mInfo;
     private Context mContext;
     private Handler mHandler;
 
@@ -46,7 +45,7 @@ public class PartialCallable implements Callable<DownloadTask> {
     private CancelableThread mThread;
 
 
-    public PartialCallable(Context context, DownloadTask info) {
+    public DownBlockCallable(Context context, Request info) {
         mContext = context;
         mInfo = info;
         mProcessList = new long[info.separate_num];
@@ -54,15 +53,15 @@ public class PartialCallable implements Callable<DownloadTask> {
 
 
     @Override
-    public DownloadTask call() {
+    public Request call() {
         if (DEBUG) Log.d(TAG, "call()执行");
         mThread = (CancelableThread) Thread.currentThread();
         Looper.prepare();
         Looper looper = Looper.myLooper();
         if (looper != null) mHandler = new Handler(looper);
 
-        List<PartialInfo> partialInfos =
-                PartialProviderHelper.queryPartialInfoList(mContext, mInfo.id);
+        List<BlockInfo> partialInfos =
+                BlockProviderHelper.queryPartialInfoList(mContext, mInfo.id);
         if (partialInfos.size() == 0) {
             // 新下载
             HttpInfo httpInfo = new HttpInfo();
@@ -76,13 +75,13 @@ public class PartialCallable implements Callable<DownloadTask> {
             Connection connection = new Connection(mContext, httpInfo);
             ResponseInfo responseInfo = connection.getResponseInfo();
             if (responseInfo == null) {// 下载失败
-                ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+                ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
                 return mInfo;
             }
             if (TextUtils.isEmpty(responseInfo.acceptRanges)) {
                 if (DEBUG) Log.e(TAG,
                         "无法下载，响应头没有 Accept-Ranges 不支持断点续传。下载地址：" + mInfo.download_url);
-                ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+                ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
                 return mInfo;
             }
             if (responseInfo.contentLength != 0) {
@@ -90,7 +89,7 @@ public class PartialCallable implements Callable<DownloadTask> {
             } else {
                 if (DEBUG) Log.e(TAG,
                         "无法下载，响应头 Content-Length 获取不到文件size。下载地址：" + mInfo.download_url);
-                ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+                ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
                 return mInfo;
             }
             if (!TextUtils.isEmpty(responseInfo.contentType)) {
@@ -110,8 +109,8 @@ public class PartialCallable implements Callable<DownloadTask> {
                     end = mInfo.total_bytes;
                 }
 
-                PartialInfo info = new PartialInfo();
-                info.status = PartialInfo.STATUS_PENDING;// 设置成待下载
+                BlockInfo info = new BlockInfo();
+                info.status = BlockInfo.STATUS_PENDING;// 设置成待下载
                 info.start_index = start;
                 info.end_index = end;
 
@@ -124,7 +123,7 @@ public class PartialCallable implements Callable<DownloadTask> {
                 info.destination_path = mInfo.destination_path;
                 info.fileName = mInfo.fileName;
 
-                Uri insert = PartialProviderHelper.insert(mContext, info);
+                Uri insert = BlockProviderHelper.insert(mContext, info);
 
                 final ContentObserver observer = new PartialObserver(mHandler);
                 assert insert != null;
@@ -134,13 +133,13 @@ public class PartialCallable implements Callable<DownloadTask> {
             }
         } else {
             // 分片的续传
-            for (PartialInfo partialInfo : partialInfos) {
+            for (BlockInfo partialInfo : partialInfos) {
                 if (DEBUG) Log.d(TAG, "partialInfo.status:" + partialInfo.status);
-                if (partialInfo.status == PartialInfo.STATUS_SUCCESS) {
+                if (partialInfo.status == BlockInfo.STATUS_SUCCESS) {
                     doneNum++;// 下载完成的不再处理，记录为完成
                 } else {
-                    PartialProviderHelper.updatePartialStutas(mContext,
-                            PartialInfo.STATUS_PENDING, partialInfo);
+                    BlockProviderHelper.updatePartialStutas(mContext,
+                            BlockInfo.STATUS_PENDING, partialInfo);
                     final ContentObserver observer = new PartialObserver(mHandler);
                     mContext.getContentResolver().registerContentObserver(
                             Utils.generatePartialBUri(mContext, partialInfo.id)
@@ -198,23 +197,23 @@ public class PartialCallable implements Callable<DownloadTask> {
         @Override
         public void onProcessChange(Uri uri, long cur, long length) {
             super.onProcessChange(uri, cur, length);
-            if (DEBUG) Log.d(PartialCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
+            if (DEBUG) Log.d(DownBlockCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
             updateProcess(uri);
         }
 
         @Override
         public void onStatusChange(Uri uri, int status) {
-            if (DEBUG) Log.d(PartialCallable.TAG, "状态发生改变：当前状态" + uri.toString() + "=" + status);
-            if (status == PartialInfo.STATUS_SUCCESS) {
+            if (DEBUG) Log.d(DownBlockCallable.TAG, "状态发生改变：当前状态" + uri.toString() + "=" + status);
+            if (status == BlockInfo.STATUS_SUCCESS) {
                 mContext.getContentResolver().unregisterContentObserver(this);
                 doneNum++;
                 if (doneNum == mInfo.separate_num) {
                     // 都完成
-                    ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_SUCCESS, mInfo);
+                    ProviderHelper.updateStatus(mContext, Request.STATUS_SUCCESS, mInfo);
                     quitLooper();
                 }
-            } else if (status == PartialInfo.STATUS_STOP
-                    || status == PartialInfo.STATUS_CANCEL) {// 停止
+            } else if (status == BlockInfo.STATUS_STOP
+                    || status == BlockInfo.STATUS_CANCEL) {// 停止
                 if (DEBUG) Log.d(TAG, "onStatusChange停止");
                 for (ContentObserver observer : observers) {
                     mContext.getContentResolver().unregisterContentObserver(observer);

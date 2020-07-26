@@ -12,8 +12,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
-import com.malong.moses.partial.PartialInfo;
-import com.malong.moses.partial.PartialProviderHelper;
+import com.malong.moses.block.BlockInfo;
+import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.utils.FileUtils;
 import com.malong.moses.utils.Utils;
 
@@ -59,14 +59,14 @@ public class DownloadManagerTest {
         Log.d(TAG, filePath);
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         builder.setFileName(fileName);
-        DownloadTask info = builder.build();
+        Request info = builder.build();
 
         Download manager = Download.getInstance();
-        DownloadTask task = manager.doDownload(mContext, info);
+        Request task = manager.doDownload(mContext, info);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
@@ -78,7 +78,7 @@ public class DownloadManagerTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(DownloadManagerTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS)
+                if (status == Request.STATUS_SUCCESS)
                     countDownLatch.countDown();
             }
         };
@@ -111,15 +111,15 @@ public class DownloadManagerTest {
                 .getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_uri(DescriptionUri);
         builder.setFileName(fileName);
-        DownloadTask info = builder.build();
+        Request info = builder.build();
 
 
         Download manager = Download.getInstance();
-        DownloadTask task = manager.doDownload(mContext, info);
+        Request task = manager.doDownload(mContext, info);
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onProcessChange(Uri uri, long cur,long length) {
@@ -152,14 +152,14 @@ public class DownloadManagerTest {
         Log.d(TAG, filePath);
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         builder.setFileName(fileName);
-        DownloadTask info = builder.build();
+        Request info = builder.build();
 
         Download manager = Download.getInstance();
-        DownloadTask task = manager.doDownload(mContext, info);
+        Request task = manager.doDownload(mContext, info);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
@@ -171,7 +171,7 @@ public class DownloadManagerTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(DownloadManagerTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS || status == DownloadTask.STATUS_FAIL)
+                if (status == Request.STATUS_SUCCESS || status == Request.STATUS_FAIL)
                     countDownLatch.countDown();
             }
         };
@@ -200,16 +200,16 @@ public class DownloadManagerTest {
         Log.d(TAG, filePath);
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         builder.setFileName(fileName);
-        builder.setMethod(DownloadTask.METHOD_BREAKPOINT);
-        final DownloadTask info = builder.build();
+        builder.setMethod(Request.METHOD_BREAKPOINT);
+        final Request info = builder.build();
 
         // 开始下载
         final Download manager = Download.getInstance();
-        DownloadTask task = manager.doDownload(mContext, info);
+        Request task = manager.doDownload(mContext, info);
         // 注册监听
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
@@ -229,7 +229,7 @@ public class DownloadManagerTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(DownloadManagerTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS)
+                if (status == Request.STATUS_SUCCESS)
                     countDownLatch.countDown();
             }
         };
@@ -245,7 +245,7 @@ public class DownloadManagerTest {
 
         // 被停止了
         int status = ProviderHelper.queryStutas(mContext, info.id);
-        Assert.assertEquals(DownloadTask.STATUS_PAUSE, status);
+        Assert.assertEquals(Request.STATUS_PAUSE, status);
 
 
         // 继续下载
@@ -274,17 +274,17 @@ public class DownloadManagerTest {
         Log.d(TAG, filePath);
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         builder.setFileName(fileName);
-        builder.setMethod(DownloadTask.METHOD_PARTIAL);
+        builder.setMethod(Request.METHOD_PARTIAL);
         builder.setSeparate_num(2);
-        final DownloadTask info = builder.build();
+        final Request info = builder.build();
 
         // 开始下载
         final Download manager = Download.getInstance();
-        DownloadTask task = manager.doDownload(mContext, info);
+        Request task = manager.doDownload(mContext, info);
         // 注册监听
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
@@ -303,9 +303,9 @@ public class DownloadManagerTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(DownloadManagerTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS)
+                if (status == Request.STATUS_SUCCESS)
                     countDownLatch.countDown();
-                if (status == DownloadTask.STATUS_PAUSE)
+                if (status == Request.STATUS_PAUSE)
                     countDownLatch.countDown();
             }
         };
@@ -320,11 +320,11 @@ public class DownloadManagerTest {
 
         // 被停止了
         int status = ProviderHelper.queryStutas(mContext, info.id);
-        Assert.assertEquals(DownloadTask.STATUS_PAUSE, status);
-        List<PartialInfo> partialInfos = PartialProviderHelper.queryPartialInfoList(mContext, info.id);
-        for (PartialInfo partialInfo : partialInfos) {
-            Assert.assertTrue((partialInfo.status == PartialInfo.STATUS_STOP)
-                    || (partialInfo.status == PartialInfo.STATUS_SUCCESS));
+        Assert.assertEquals(Request.STATUS_PAUSE, status);
+        List<BlockInfo> partialInfos = BlockProviderHelper.queryPartialInfoList(mContext, info.id);
+        for (BlockInfo partialInfo : partialInfos) {
+            Assert.assertTrue((partialInfo.status == BlockInfo.STATUS_STOP)
+                    || (partialInfo.status == BlockInfo.STATUS_SUCCESS));
         }
 
 
@@ -337,7 +337,7 @@ public class DownloadManagerTest {
             e.printStackTrace();
         }
         // 下载完成了
-        DownloadTask doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
+        Request doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
         // ETag : "4df4d61142e773a16769473cf2654b71"
         String md5 = FileUtils.toMd5(new File(info.destination_path, info.fileName), false);

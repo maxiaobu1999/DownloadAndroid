@@ -66,22 +66,22 @@ public class CommonPathTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         assert fileName != null;
         builder.setFileName(fileName);
-        final DownloadTask info = builder.build();
+        final Request info = builder.build();
 
 
         // 1、下载
-        DownloadTask task = Download.doDownload(mContext, info);
+        Request task = Download.doDownload(mContext, info);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(CommonPathTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS)
+                if (status == Request.STATUS_SUCCESS)
                     LockSupport.unpark(mThread);
             }
         };
@@ -93,7 +93,7 @@ public class CommonPathTest {
 
 
         // 下载完成了
-        DownloadTask doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
+        Request doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
         // ETag : "4df4d61142e773a16769473cf2654b71"
         String md5 = FileUtils.toMd5(new File(info.destination_path, info.fileName), false);
@@ -123,16 +123,16 @@ public class CommonPathTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         Assert.assertNotNull(fileName);
         builder.setFileName(fileName);
-         DownloadTask info = builder.build();
+         Request info = builder.build();
 
 
         // 1、下载
-        DownloadTask task = Download.doDownload(mContext, info);
+        Request task = Download.doDownload(mContext, info);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
@@ -152,7 +152,7 @@ public class CommonPathTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(CommonPathTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS) {
+                if (status == Request.STATUS_SUCCESS) {
                     LockSupport.unpark(mThread);
                 }
             }
@@ -161,11 +161,11 @@ public class CommonPathTest {
         mContext.getContentResolver().registerContentObserver(
                 Utils.generateDownloadUri(mContext,task.id), false, mObserver);
         LockSupport.park();
-        DownloadTask doneInfo;
+        Request doneInfo;
         // 下载停止了
         doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
-        Assert.assertEquals(doneInfo.status, DownloadTask.STATUS_PAUSE);
+        Assert.assertEquals(doneInfo.status, Request.STATUS_PAUSE);
         Assert.assertTrue(doneInfo.current_bytes < doneInfo.total_bytes);
         Assert.assertTrue(FileUtils.checkFileExist(doneInfo.destination_path, doneInfo.fileName));
 
@@ -203,19 +203,19 @@ public class CommonPathTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         Assert.assertNotNull(fileName);
         builder.setFileName(fileName);
-        final  DownloadTask info = builder.build();
+        final Request info = builder.build();
 
 
         // 1、下载 两次
-        DownloadTask task = Download.doDownload(mContext, info);
-        List<DownloadTask> downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
+        Request task = Download.doDownload(mContext, info);
+        List<Request> downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
-        DownloadTask task2 = Download.doDownload(mContext, info);
+        Request task2 = Download.doDownload(mContext, info);
         downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
         assert task != null;
@@ -240,7 +240,7 @@ public class CommonPathTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(CommonPathTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS) {
+                if (status == Request.STATUS_SUCCESS) {
                     LockSupport.unpark(mThread);
                 }
             }
@@ -249,11 +249,11 @@ public class CommonPathTest {
                 Utils.generateDownloadUri(mContext,task.id),
                 false, mObserver);
         LockSupport.park();
-        DownloadTask doneInfo;
+        Request doneInfo;
         // 下载停止了
         doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
-        Assert.assertEquals(doneInfo.status, DownloadTask.STATUS_PAUSE);
+        Assert.assertEquals(doneInfo.status, Request.STATUS_PAUSE);
         Assert.assertTrue(doneInfo.current_bytes < doneInfo.total_bytes);
         Assert.assertTrue(FileUtils.checkFileExist(doneInfo.destination_path, doneInfo.fileName));
 

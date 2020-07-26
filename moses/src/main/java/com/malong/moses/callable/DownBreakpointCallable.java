@@ -6,7 +6,7 @@ import android.util.Log;
 
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.ProviderHelper;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
@@ -20,19 +20,19 @@ import java.io.InterruptedIOException;
 import java.util.concurrent.Callable;
 
 /** 断点续传下载 */
-public class BreakpointCallable implements Callable<DownloadTask> {
-    public static final String TAG = "【BreakpointCallable】";
+public class DownBreakpointCallable implements Callable<Request> {
+    public static final String TAG = "【DownBreakpointCa】";
     private static boolean DEBUG = Constants.DEBUG;
-    private DownloadTask mInfo;
+    private Request mInfo;
     private Context mContext;
 
-    public BreakpointCallable(Context context, DownloadTask info) {
+    public DownBreakpointCallable(Context context, Request info) {
         mContext = context;
         mInfo = info;
     }
 
     @Override
-    public DownloadTask call() {
+    public Request call() {
         if (DEBUG) Log.d(TAG, "call()执行");
         CancelableThread mThread = (CancelableThread) Thread.currentThread();
 
@@ -46,13 +46,13 @@ public class BreakpointCallable implements Callable<DownloadTask> {
         Connection connection = new Connection(mContext, httpInfo);
         ResponseInfo responseInfo = connection.getResponseInfo();
         if (responseInfo == null) {// 下载失败
-            ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+            ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
             return mInfo;
         }
         if (TextUtils.isEmpty(responseInfo.acceptRanges)) {
             if (DEBUG) Log.e(TAG,
                     "无法下载，响应头没有 Accept-Ranges 不支持断点续传。下载地址：" + mInfo.download_url);
-            ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+            ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
             return mInfo;
         }
         if (responseInfo.contentLength != 0) {
@@ -60,7 +60,7 @@ public class BreakpointCallable implements Callable<DownloadTask> {
         }else {
             if (DEBUG) Log.e(TAG,
                     "无法下载，响应头 Content-Length 获取不到文件size。下载地址：" + mInfo.download_url);
-            ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+            ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
             return mInfo;
         }
         if (!TextUtils.isEmpty(responseInfo.contentType)) {
@@ -78,7 +78,7 @@ public class BreakpointCallable implements Callable<DownloadTask> {
         // 请求服务器，获取输入流
         InputStream is = connection.getInputStream();
         if (is == null) {
-            ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+            ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
             return mInfo;
         }
 
@@ -107,13 +107,13 @@ public class BreakpointCallable implements Callable<DownloadTask> {
             }
             os.flush();
             // 下载完成
-            mInfo.status = DownloadTask.STATUS_SUCCESS;
+            mInfo.status = Request.STATUS_SUCCESS;
             ProviderHelper.onStatusChange(mContext, mInfo);
         } catch (InterruptedIOException e) {
             // 下载被取消,finally会执行
         } catch (Exception e) {
             e.printStackTrace();
-            mInfo.status = DownloadTask.STATUS_FAIL;
+            mInfo.status = Request.STATUS_FAIL;
             ProviderHelper.onStatusChange(mContext, mInfo);
         } finally {
             Closeables.closeSafely(is);

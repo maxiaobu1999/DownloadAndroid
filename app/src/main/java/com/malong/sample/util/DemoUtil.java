@@ -16,10 +16,17 @@
 
 package com.malong.sample.util;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
+
+import com.malong.moses.utils.MimeTypeUtils;
 
 import java.io.File;
 
@@ -41,6 +48,23 @@ public class DemoUtil {
             return context.getCacheDir();
         } else {
             return externalSaveDir;
+        }
+    }
+
+    public static void openFile(Context context, String file) {
+        try {
+            Uri contentUri = FileProvider.getUriForFile(context,
+                    context.getPackageName() + ".fileProvider"
+                    , new File(file));
+            Intent intent = new Intent();
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.setAction(Intent.ACTION_VIEW) ;
+            intent.setDataAndType(contentUri, MimeTypeUtils.getMIMEType(file));
+            context.startActivity(intent);
+            Intent.createChooser(intent, "请选择对应的软件打开该附件！");
+        } catch (ActivityNotFoundException e){
+            Toast.makeText(context, "sorry附件不能打开，请下载相关软件！", Toast.LENGTH_SHORT).show();
         }
     }
 }

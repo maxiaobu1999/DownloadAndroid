@@ -7,7 +7,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,13 +101,13 @@ public class Connection {
             conn.setConnectTimeout(500);// 设置连接超时时间
             conn.setReadTimeout(500);// 设置读取超时时间
             // 处理局部下载，添加Range请求头
-            if (mInfo.method == DownloadTask.METHOD_BREAKPOINT
+            if (mInfo.method == Request.METHOD_BREAKPOINT
                     && mInfo.current_bytes != 0
                     && mInfo.total_bytes > mInfo.current_bytes) {
                 // 续传
                 String range = "bytes=" + mInfo.current_bytes + "-" + mInfo.total_bytes;
                 conn.setRequestProperty("Range", range);// 指定下载文件的指定位置
-            } else if (mInfo.method == DownloadTask.METHOD_PARTIAL) {
+            } else if (mInfo.method == Request.METHOD_PARTIAL) {
                 // 分片
                 String range = "bytes=" + mInfo.start_index + "-" + mInfo.end_index;
                 if (DEBUG) Log.d(TAG, "range=" + range);

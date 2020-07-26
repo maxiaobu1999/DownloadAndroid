@@ -15,7 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.DownloadService;
 
 import java.io.File;
@@ -151,7 +151,7 @@ public class Utils {
 
 
     @Nullable
-    public static FileOutputStream getOutputStream(Context context, DownloadTask info) {
+    public static FileOutputStream getOutputStream(Context context, Request info) {
         FileOutputStream outputStream = null;
         if (!TextUtils.isEmpty(info.destination_uri)) {
             Uri description_uri = Uri.parse(info.destination_uri);

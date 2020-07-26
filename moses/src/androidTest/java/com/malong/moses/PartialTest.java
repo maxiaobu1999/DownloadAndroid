@@ -12,8 +12,8 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
 
-import com.malong.moses.partial.PartialInfo;
-import com.malong.moses.partial.PartialProviderHelper;
+import com.malong.moses.block.BlockInfo;
+import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.utils.FileUtils;
 import com.malong.moses.utils.Utils;
 
@@ -68,25 +68,25 @@ public class PartialTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         assert fileName != null;
         builder.setFileName(fileName);
-        builder.setMethod(DownloadTask.METHOD_PARTIAL);
+        builder.setMethod(Request.METHOD_PARTIAL);
         builder.setSeparate_num(11);
-        final DownloadTask info = builder.build();
+        final Request info = builder.build();
 
 
         // 1、下载
         final Download manager = Download.getInstance();
-        DownloadTask task = manager.doDownload(mContext, info);
+        Request task = manager.doDownload(mContext, info);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(PartialTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS)
+                if (status == Request.STATUS_SUCCESS)
                     LockSupport.unpark(mThread);
             }
         };
@@ -97,7 +97,7 @@ public class PartialTest {
 
 
         // 下载完成了
-        DownloadTask doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
+        Request doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
         // ETag : "4df4d61142e773a16769473cf2654b71"
         String md5 = FileUtils.toMd5(new File(info.destination_path, info.fileName), false);
@@ -130,19 +130,19 @@ public class PartialTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         Assert.assertNotNull(fileName);
         builder.setFileName(fileName);
-        builder.setMethod(DownloadTask.METHOD_PARTIAL);
+        builder.setMethod(Request.METHOD_PARTIAL);
         builder.setSeparate_num(4);
-        final DownloadTask info = builder.build();
+        final Request info = builder.build();
 
 
         // 1、下载
         final Download manager = Download.getInstance();
-       DownloadTask task = manager.doDownload(mContext, info);
+       Request task = manager.doDownload(mContext, info);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
@@ -162,7 +162,7 @@ public class PartialTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(PartialTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS) {
+                if (status == Request.STATUS_SUCCESS) {
                     LockSupport.unpark(mThread);
                 }
             }
@@ -171,7 +171,7 @@ public class PartialTest {
         mContext.getContentResolver().registerContentObserver(
                 Utils.generateDownloadUri(mContext,task.id), false, mObserver);
         LockSupport.park();
-        DownloadTask doneInfo;
+        Request doneInfo;
         // 下载停止了
         try {
             Thread.sleep(100);// 停止会有一段延时
@@ -180,14 +180,14 @@ public class PartialTest {
         }
         doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
-        Assert.assertEquals(doneInfo.status, DownloadTask.STATUS_PAUSE);
+        Assert.assertEquals(doneInfo.status, Request.STATUS_PAUSE);
         Assert.assertTrue(doneInfo.current_bytes <= doneInfo.total_bytes);
         Assert.assertTrue(FileUtils.checkFileExist(doneInfo.destination_path, doneInfo.fileName));
-        List<PartialInfo> partialInfoList = PartialProviderHelper.queryPartialInfoList(mContext, info.id);
+        List<BlockInfo> partialInfoList = BlockProviderHelper.queryPartialInfoList(mContext, info.id);
         Assert.assertEquals(partialInfoList.size(),info.separate_num);
-        for (PartialInfo partialInfo : partialInfoList) {
-            Assert.assertTrue((partialInfo.status==PartialInfo.STATUS_STOP)
-            ||(partialInfo.status==PartialInfo.STATUS_SUCCESS));
+        for (BlockInfo partialInfo : partialInfoList) {
+            Assert.assertTrue((partialInfo.status== BlockInfo.STATUS_STOP)
+            ||(partialInfo.status== BlockInfo.STATUS_SUCCESS));
         }
 
 
@@ -228,22 +228,22 @@ public class PartialTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         Assert.assertNotNull(fileName);
         builder.setFileName(fileName);
-        builder.setMethod(DownloadTask.METHOD_PARTIAL);
+        builder.setMethod(Request.METHOD_PARTIAL);
         builder.setSeparate_num(4);
-        final DownloadTask info = builder.build();
+        final Request info = builder.build();
 
 
         // 1、下载 两次
         final Download manager = Download.getInstance();
-        DownloadTask task = manager.doDownload(mContext, info);
-        List<DownloadTask> downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
+        Request task = manager.doDownload(mContext, info);
+        List<Request> downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
-        DownloadTask task2 = manager.doDownload(mContext, info);
+        Request task2 = manager.doDownload(mContext, info);
         Thread.sleep(200);
         downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
@@ -276,7 +276,7 @@ public class PartialTest {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(PartialTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS) {
+                if (status == Request.STATUS_SUCCESS) {
                     LockSupport.unpark(mThread);
                 }
             }
@@ -284,11 +284,11 @@ public class PartialTest {
         mContext.getContentResolver().registerContentObserver(
                 Utils.generateDownloadUri(mContext,task.id), false, mObserver);
         LockSupport.park();
-        DownloadTask doneInfo;
+        Request doneInfo;
         // 下载停止了
         doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
-        Assert.assertEquals(doneInfo.status, DownloadTask.STATUS_PAUSE);
+        Assert.assertEquals(doneInfo.status, Request.STATUS_PAUSE);
         Assert.assertTrue(doneInfo.current_bytes < doneInfo.total_bytes);
         Assert.assertTrue(FileUtils.checkFileExist(doneInfo.destination_path, doneInfo.fileName));
 
@@ -329,24 +329,24 @@ public class PartialTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         assert fileName != null;
         builder.setFileName(fileName);
-        builder.setMethod(DownloadTask.METHOD_PARTIAL);
+        builder.setMethod(Request.METHOD_PARTIAL);
         builder.setSeparate_num(11);
-        final DownloadTask info = builder.build();
+        final Request info = builder.build();
 
 
         // 1、下载
-        DownloadTask task = Download.doDownload(mContext, info);
+        Request task = Download.doDownload(mContext, info);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onStatusChange(Uri uri, int status) {
                 Log.d(PartialTest.TAG, "状态发生改变：当前状态=" + status);
-                if (status == DownloadTask.STATUS_SUCCESS)
+                if (status == Request.STATUS_SUCCESS)
                     LockSupport.unpark(mThread);
             }
         };
@@ -369,7 +369,7 @@ public class PartialTest {
 
 
         // 下载完成了
-        DownloadTask doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
+        Request doneInfo = ProviderHelper.queryDownloadInfo(mContext, info.id);
         Assert.assertNotNull(doneInfo);
         // ETag : "4df4d61142e773a16769473cf2654b71"
         String md5 = FileUtils.toMd5(new File(info.destination_path, info.fileName), false);

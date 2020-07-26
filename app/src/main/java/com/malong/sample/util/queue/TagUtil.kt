@@ -16,8 +16,6 @@
 
 package com.malong.sample.util.queue
 
-import com.malong.moses.DownloadTask
-
 
 internal object TagUtil {
     private const val KEY_STATUS = 0

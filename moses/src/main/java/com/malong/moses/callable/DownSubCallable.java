@@ -5,11 +5,11 @@ import android.util.Log;
 
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
-import com.malong.moses.partial.PartialInfo;
-import com.malong.moses.partial.PartialProviderHelper;
+import com.malong.moses.block.BlockInfo;
+import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.utils.Closeables;
 
 import java.io.File;
@@ -18,21 +18,21 @@ import java.io.InterruptedIOException;
 import java.io.RandomAccessFile;
 import java.util.concurrent.Callable;
 
-public class SubCallable implements Callable<PartialInfo> {
-    public static final String TAG = "【SubCallable】";
+public class DownSubCallable implements Callable<BlockInfo> {
+    public static final String TAG = "【DownSubCallable】";
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
-    private PartialInfo mInfo;
+    private BlockInfo mInfo;
     private Context mContext;
 
-    public SubCallable(Context context, PartialInfo info) {
+    public DownSubCallable(Context context, BlockInfo info) {
         mContext = context;
         mInfo = info;
 
     }
 
     @Override
-    public PartialInfo call() {
+    public BlockInfo call() {
         if (DEBUG) Log.d(TAG, "call()执行");
         CancelableThread mThread = (CancelableThread) Thread.currentThread();
         //noinspection ResultOfMethodCallIgnored
@@ -43,7 +43,7 @@ public class SubCallable implements Callable<PartialInfo> {
         httpInfo.destination_uri = mInfo.destination_uri;
         httpInfo.destination_path = mInfo.destination_path;
         httpInfo.fileName = mInfo.fileName;
-        httpInfo.method = DownloadTask.METHOD_PARTIAL;
+        httpInfo.method = Request.METHOD_PARTIAL;
         httpInfo.total_bytes = mInfo.total_bytes;
         httpInfo.current_bytes = mInfo.current_bytes;
         httpInfo.start_index = mInfo.start_index + mInfo.current_bytes;// 续传
@@ -52,7 +52,7 @@ public class SubCallable implements Callable<PartialInfo> {
         if (httpInfo.start_index >= httpInfo.end_index) {
 //            mInfo.status = DownloadTask.STATUS_SUCCESS;
 //            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
-            PartialProviderHelper.updatePartialStutas(mContext, PartialInfo.STATUS_SUCCESS, mInfo);
+            BlockProviderHelper.updatePartialStutas(mContext, BlockInfo.STATUS_SUCCESS, mInfo);
             return mInfo;
         }
 
@@ -60,7 +60,7 @@ public class SubCallable implements Callable<PartialInfo> {
         // 请求服务器，获取输入流
         InputStream is = connection.getInputStream();
         if (is == null) {
-            PartialProviderHelper.updatePartialStutas(mContext, PartialInfo.STATUS_FAIL, mInfo);
+            BlockProviderHelper.updatePartialStutas(mContext, BlockInfo.STATUS_FAIL, mInfo);
             return mInfo;
         }
         RandomAccessFile raf = null;
@@ -83,18 +83,18 @@ public class SubCallable implements Callable<PartialInfo> {
                 mInfo.current_bytes = size;
                 if (DEBUG) Log.d(TAG, " mInfo.current_bytes="+ mInfo.current_bytes);
 
-                PartialProviderHelper.updatePartialProcess(mContext, mInfo);
+                BlockProviderHelper.updatePartialProcess(mContext, mInfo);
             }
             // 下载完成
 //            mInfo.status = DownloadTask.STATUS_SUCCESS;
-            PartialProviderHelper.updatePartialStutas(mContext, DownloadTask.STATUS_SUCCESS,mInfo);
+            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_SUCCESS,mInfo);
         } catch (InterruptedIOException e) {
             // 下载被取消,finally会执行
         } catch (Exception e) {
             e.printStackTrace();
 //            mInfo.status = DownloadTask.STATUS_FAIL;
 //            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
-            PartialProviderHelper.updatePartialStutas(mContext, DownloadTask.STATUS_FAIL,mInfo);
+            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_FAIL,mInfo);
         } finally {
             Closeables.closeSafely(is);
             connection.close();

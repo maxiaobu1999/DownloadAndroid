@@ -8,7 +8,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.utils.Utils;
 
 public class BlockListener implements Listener {
@@ -63,15 +63,15 @@ public class BlockListener implements Listener {
                             Log.d(TAG, "状态发生改变：当前状态=" + status);
                         }
                         mLastState = status;
-                        if (status == DownloadTask.STATUS_RUNNING) {
+                        if (status == Request.STATUS_RUNNING) {
                             onStart();
-                        } else if (status == DownloadTask.STATUS_PAUSE) {
+                        } else if (status == Request.STATUS_PAUSE) {
                             onPause();
-                        } else if (status == DownloadTask.STATUS_SUCCESS) {
+                        } else if (status == Request.STATUS_SUCCESS) {
                             onSuccess();
-                        } else if (status == DownloadTask.STATUS_FAIL) {
+                        } else if (status == Request.STATUS_FAIL) {
                             onCancel();
-                        } else if (status == DownloadTask.STATUS_CANCEL) {
+                        } else if (status == Request.STATUS_CANCEL) {
                             onCancel();
                         }
                     }

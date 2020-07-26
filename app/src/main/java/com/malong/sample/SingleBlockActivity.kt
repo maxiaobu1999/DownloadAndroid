@@ -1,31 +1,24 @@
 package com.malong.sample
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.util.SparseArray
 import android.util.SparseIntArray
 import android.view.View
-import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.FileProvider
 import androidx.core.util.set
+import com.malong.moses.Constants
 import com.malong.moses.Download
-import com.malong.moses.DownloadTask
+import com.malong.moses.Request
 import com.malong.moses.listener.BlockListener
-import com.malong.moses.partial.PartialInfo
+import com.malong.moses.block.BlockInfo
 import com.malong.moses.utils.FileUtils
-import com.malong.moses.utils.MimeTypeUtils
 import com.malong.moses.utils.SpeedCalculator
 import com.malong.sample.base.BaseSampleActivity
 import com.malong.sample.util.DemoUtil
-import java.io.File
 
 /** 分片+续传 最简单下载演示 */
 class SingleBlockActivity : BaseSampleActivity() {
@@ -36,7 +29,7 @@ class SingleBlockActivity : BaseSampleActivity() {
 
     }
 
-    private var task: DownloadTask? = null
+    private var task: Request? = null
 
     //    /** 分片数据 */
 //    private var partialList: List<PartialInfo>? = null
@@ -65,7 +58,7 @@ class SingleBlockActivity : BaseSampleActivity() {
     private var progressBar: ProgressBar? = null
 
     /** 打开下载文件的按钮 */
-    private var openBtn: Button? = null
+    private var openActionTv: View? = null
 
     private var blockPreProgressList = SparseArray<Long>()
     private var blockPreLengthList = SparseArray<Long>()
@@ -81,6 +74,7 @@ class SingleBlockActivity : BaseSampleActivity() {
         downloadActionView = findViewById(R.id.downloadActionView)
         pauseActionView = findViewById(R.id.pauseActionView)
         deleteActionView = findViewById(R.id.deleteActionView)
+        openActionTv = findViewById(R.id.openActionTv)
 
         init()
     }
@@ -107,11 +101,11 @@ class SingleBlockActivity : BaseSampleActivity() {
         val filename = FileUtils.getFileNameFromUrl(url)
 //        val url = "https://cdn.llscdn.com/yy/files/xs8qmxn8-lls-LLS-5.8-800-20171207-111607.apk"
         val parentFile = DemoUtil.getParentFile(this)
-        task = DownloadTask.Builder()
+        task = Request.Builder()
             .setDescription_path(parentFile.toString())
             .setFileName(filename!!)
             .setDownloadUrl(url)
-            .setMethod(DownloadTask.METHOD_PARTIAL)
+            .setMethod(Request.METHOD_PARTIAL)
             .setSeparate_num(BLOCK_NUM)
             .build()
     }
@@ -119,7 +113,7 @@ class SingleBlockActivity : BaseSampleActivity() {
 
     /** 获取该任务之前的下载信息 */
     private fun initStatus() {
-        task = Download.convertDownloadInfo(mActivity, task)// 若之前下载过，会更新task信息
+        task = Download.queryDownloadInfo(mActivity, task)// 若之前下载过，会更新task信息
         // 显示当前的下载进度
         DemoUtil.calcProgressToView(progressBar, task!!.current_bytes, task!!.total_bytes)
         val assembleTotalContent =
@@ -139,7 +133,8 @@ class SingleBlockActivity : BaseSampleActivity() {
         downloadActionView?.setOnClickListener {
             // let：表示 task 不为null的条件下，才会去执行let函数体.it 指向 task
             task?.let { it ->
-                task = Download.doDownload(mActivity, it)
+                val downloadId = Download.doDownload(mActivity, it)
+                task = Download.queryDownloadInfo(mActivity, downloadId)
                 mListener.register(mActivity, task!!.id)// 主监听
             }
         }
@@ -152,15 +147,15 @@ class SingleBlockActivity : BaseSampleActivity() {
             task?.let {
                 Download.deleteDownload(mActivity, task)
                 for (i in 0 until BLOCK_NUM) {
-                    updatePartial(i, 0, 0, PartialInfo.STATUS_CANCEL)
+                    updatePartial(i, 0, 0, BlockInfo.STATUS_CANCEL)
                 }
 
             }
         }
-        openBtn?.setOnClickListener {
+        openActionTv?.setOnClickListener {
             task?.let {
-                if (it.status == DownloadTask.STATUS_SUCCESS) {
-                    openFile(mActivity!!, it.destination_path + it.fileName)
+                if (it.status == Request.STATUS_SUCCESS) {
+                    DemoUtil.openFile(mActivity!!, it.destination_path + it.fileName)
                 } else {
                     Toast.makeText(mActivity!!, "没下载完呢", Toast.LENGTH_LONG).show()
                 }
@@ -233,8 +228,7 @@ class SingleBlockActivity : BaseSampleActivity() {
         val curProcess: String = SpeedCalculator.humanReadableBytes(current_bytes, false)
         val totalProcess: String = SpeedCalculator.humanReadableBytes(total_bytes, false)
         val progressStatusWithSpeed = "$curProcess / $totalProcess（$speed）"
-        var string = "状态=${convertStatus(status)}。进度=$progressStatusWithSpeed"
-        return string
+        return "状态=${convertStatus(status)}。进度=$progressStatusWithSpeed"
     }
 
     private fun assembleTotalContent(status: Int, current_bytes: Long, total_bytes: Long): String {
@@ -242,8 +236,7 @@ class SingleBlockActivity : BaseSampleActivity() {
         val totalProcess: String = SpeedCalculator.humanReadableBytes(total_bytes, false)
         val speed: String = mSpeedCalculator.speed()
         val progressStatusWithSpeed = "$curProcess / $totalProcess（$speed）"
-        var string = "总状态:${convertStatus(task!!.status)}。进度=$progressStatusWithSpeed"
-        return string
+        return "总状态:${convertStatus(task!!.status)}。进度=$progressStatusWithSpeed"
     }
 
     /** 下载状态监听 */
@@ -252,17 +245,6 @@ class SingleBlockActivity : BaseSampleActivity() {
         override fun onStatusChange(status: Int) {
             Log.d(SingleBlockActivity.TAG, "status=$status")
             task?.status = status
-//            if (status == DownloadTask.STATUS_RUNNING) {
-//                // to pause
-////                actionTv?.text = "暂停"
-//            } else if (status == DownloadTask.STATUS_SUCCESS) {
-////                totalInfoTv?.text = convertStatus(status)
-////                actionTv?.text = "删除"
-//            } else {
-//                // to start
-////                totalInfoTv?.text = convertStatus(status)
-////                actionTv?.text = "下载"
-//            }
         }
 
         /** 进度变更监听 */
@@ -272,10 +254,6 @@ class SingleBlockActivity : BaseSampleActivity() {
             preProcess = cur
             val percent: Float = cur * 1f / length
             progressBar!!.progress = (percent * progressBar!!.max).toInt()
-            val curProcess: String = SpeedCalculator.humanReadableBytes(cur, false)
-            val totalProcess: String = SpeedCalculator.humanReadableBytes(length, false)
-            val speed: String = mSpeedCalculator.speed()
-            val status: String = convertStatus(task!!.status)
             val progressStatusWithSpeed = assembleTotalContent(task!!.status, cur, length)
 //                "下载任务：$status。$curProcess / $totalProcess（$speed）"
             totalInfoTv?.text = progressStatusWithSpeed
@@ -300,31 +278,13 @@ class SingleBlockActivity : BaseSampleActivity() {
     /** 状态码 to 文字 */
     private fun convertStatus(status: Int): String {
         when (status) {
-            DownloadTask.STATUS_PENDING -> return "准备"
-            DownloadTask.STATUS_RUNNING -> return "下载中"
-            DownloadTask.STATUS_SUCCESS -> return "下载完成"
-            DownloadTask.STATUS_PAUSE -> return "暂停中"
-            DownloadTask.STATUS_FAIL -> return "下载失败"
-            DownloadTask.STATUS_CANCEL -> return "删除完成"
+            Request.STATUS_PENDING -> return "准备"
+            Request.STATUS_RUNNING -> return "下载中"
+            Request.STATUS_SUCCESS -> return "下载完成"
+            Request.STATUS_PAUSE -> return "暂停中"
+            Request.STATUS_FAIL -> return "下载失败"
+            Request.STATUS_CANCEL -> return "删除完成"
         }
         return status.toString()
-    }
-
-    fun openFile(context: Context, file: String?) {
-        try {
-            val contentUri: Uri = FileProvider.getUriForFile(
-                context,
-                context.packageName + ".fileprovider", File(file)
-            )
-            val intent = Intent()
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.action = Intent.ACTION_VIEW
-            intent.setDataAndType(contentUri, MimeTypeUtils.getMIMEType(file))
-            context.startActivity(intent)
-            Intent.createChooser(intent, "请选择对应的软件打开该附件！")
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, "sorry附件不能打开，请下载相关软件！", Toast.LENGTH_SHORT).show()
-        }
     }
 }

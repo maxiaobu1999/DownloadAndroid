@@ -1,9 +1,6 @@
 package com.malong.sample
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -12,16 +9,13 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.FileProvider
 import com.malong.moses.Download
 import com.malong.moses.listener.DownloadListener
-import com.malong.moses.DownloadTask
+import com.malong.moses.Request
 import com.malong.moses.utils.FileUtils
-import com.malong.moses.utils.MimeTypeUtils
 import com.malong.moses.utils.SpeedCalculator
 import com.malong.sample.base.BaseSampleActivity
 import com.malong.sample.util.DemoUtil
-import java.io.File
 
 
 /** 断点续传 最简单下载演示 */
@@ -30,7 +24,7 @@ class SingleBreakpointActivity : BaseSampleActivity() {
         private const val TAG = "【SingleBreakpointAty】"
     }
 
-    private var task: DownloadTask? = null
+    private var task: Request? = null
     private var mActivity: Activity? = null
 
     /** 计算下载速度 */
@@ -82,21 +76,22 @@ class SingleBreakpointActivity : BaseSampleActivity() {
     /** 配置下载任务信息 */
     private fun initTask() {
 //        val url = Constants.BASE_URL + Constants.IMAGE_NAME
-        val url = "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
+        val url =
+            "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
         val filename = FileUtils.getFileNameFromUrl(url)
 //        val url = "https://cdn.llscdn.com/yy/files/xs8qmxn8-lls-LLS-5.8-800-20171207-111607.apk"
         val parentFile = DemoUtil.getParentFile(this)
-        task = DownloadTask.Builder()
+        task = Request.Builder()
             .setDescription_path(parentFile.toString())
             .setFileName(filename!!)
             .setDownloadUrl(url)
-            .setMethod(DownloadTask.METHOD_BREAKPOINT)
+            .setMethod(Request.METHOD_BREAKPOINT)
             .build()
     }
 
     /** 获取该任务之前的下载信息 */
     private fun initStatus() {
-        task = Download.convertDownloadInfo(mActivity, task)// 若之前下载过，会更新task信息
+        task = Download.queryDownloadInfo(mActivity, task)// 若之前下载过，会更新task信息
         DemoUtil.calcProgressToView(
             progressBar,
             task!!.current_bytes,
@@ -105,10 +100,10 @@ class SingleBreakpointActivity : BaseSampleActivity() {
         statusTv?.text = convertStatus(task!!.status)// 显示当前的下载状态
         // 更新下载按钮文案
         when (task!!.status) {
-            DownloadTask.STATUS_RUNNING -> {
+            Request.STATUS_RUNNING -> {
                 actionTv?.text = "暂停"
             }
-            DownloadTask.STATUS_SUCCESS -> {
+            Request.STATUS_SUCCESS -> {
                 actionTv?.text = "删除"
             }
             else -> {
@@ -123,18 +118,19 @@ class SingleBreakpointActivity : BaseSampleActivity() {
             task?.let {
                 // let：表示 task 不为null的条件下，才会去执行let函数体.it 指向 task
                 when (it.status) {
-                    DownloadTask.STATUS_RUNNING -> {
+                    Request.STATUS_RUNNING -> {
                         // 下载中 to pause
                         Download.pauseDownload(mActivity, task)
                     }
-                    DownloadTask.STATUS_SUCCESS -> {
+                    Request.STATUS_SUCCESS -> {
                         // 下载完成 to 删除
                         Download.deleteDownload(mActivity, task)
                         //                    mListener.unregister()
                     }
                     else -> {
                         // else to 下载
-                        task = Download.doDownload(mActivity, task)
+                        val downloadId = Download.doDownload(mActivity, task)
+                        task = Download.queryDownloadInfo(mActivity, downloadId)
                         mListener.register(mActivity, task!!.id)
                     }
                 }
@@ -143,10 +139,10 @@ class SingleBreakpointActivity : BaseSampleActivity() {
 
         openBtn?.setOnClickListener {
             task?.let {
-                if (it.status == DownloadTask.STATUS_SUCCESS) {
-                    openFile(mActivity!!, it.destination_path + it.fileName)
+                if (it.status == Request.STATUS_SUCCESS) {
+                    DemoUtil.openFile(mActivity!!, it.destination_path + it.fileName)
                 } else {
-                    Toast.makeText(mActivity!!,"没下载完呢", Toast.LENGTH_LONG).show()
+                    Toast.makeText(mActivity!!, "没下载完呢", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -158,10 +154,10 @@ class SingleBreakpointActivity : BaseSampleActivity() {
         override fun onStatusChange(uri: Uri?, status: Int) {
             Log.d(TAG, "status=$status")
             task?.status = status
-            if (status == DownloadTask.STATUS_RUNNING) {
+            if (status == Request.STATUS_RUNNING) {
                 // to pause
                 actionTv?.text = "暂停"
-            } else if (status == DownloadTask.STATUS_SUCCESS) {
+            } else if (status == Request.STATUS_SUCCESS) {
                 statusTv?.text = convertStatus(status)
                 actionTv?.text = "删除"
             } else {
@@ -180,7 +176,7 @@ class SingleBreakpointActivity : BaseSampleActivity() {
             preProcess = cur
             val percent: Float = cur * 1f / length
             progressBar!!.progress = (percent * progressBar!!.max).toInt()
-            if (task?.status == DownloadTask.STATUS_RUNNING) {
+            if (task?.status == Request.STATUS_RUNNING) {
                 val curProcess: String = SpeedCalculator.humanReadableBytes(cur, false)
                 val totalProcess: String = SpeedCalculator.humanReadableBytes(length, false)
                 val speed: String = mSpeedCalculator.speed()
@@ -194,30 +190,15 @@ class SingleBreakpointActivity : BaseSampleActivity() {
     /** 状态码 to 文字 */
     private fun convertStatus(status: Int): String {
         when (status) {
-            DownloadTask.STATUS_PENDING -> return "准备"
-            DownloadTask.STATUS_RUNNING -> return "下载中"
-            DownloadTask.STATUS_SUCCESS -> return "下载完成"
-            DownloadTask.STATUS_PAUSE -> return "暂停中"
-            DownloadTask.STATUS_FAIL -> return "下载失败"
-            DownloadTask.STATUS_CANCEL -> return "删除完成"
+            Request.STATUS_PENDING -> return "准备"
+            Request.STATUS_RUNNING -> return "下载中"
+            Request.STATUS_SUCCESS -> return "下载完成"
+            Request.STATUS_PAUSE -> return "暂停中"
+            Request.STATUS_FAIL -> return "下载失败"
+            Request.STATUS_CANCEL -> return "删除完成"
         }
         return status.toString()
     }
 
-    fun openFile(context: Context, file: String?) {
-        try {
-            val contentUri: Uri = FileProvider.getUriForFile(context,
-                context.packageName+".fileprovider", File(file)
-            )
-            val intent = Intent()
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION )
-            intent.action = Intent.ACTION_VIEW
-            intent.setDataAndType(contentUri, MimeTypeUtils.getMIMEType(file))
-            context.startActivity(intent)
-            Intent.createChooser(intent, "请选择对应的软件打开该附件！")
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, "sorry附件不能打开，请下载相关软件！", Toast.LENGTH_SHORT).show()
-        }
-    }
+
 }

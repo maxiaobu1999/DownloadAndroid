@@ -12,7 +12,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.malong.moses.partial.PartialInfo;
+import com.malong.moses.block.BlockInfo;
 import com.malong.moses.utils.Closeables;
 import com.malong.moses.utils.Utils;
 
@@ -192,7 +192,7 @@ public final class DownloadProvider {
             // 先查出受影响的条目
             Cursor cursor = mDb.query(Constants.DB_TABLE, new String[]{"*"},
                     selection, selectionArgs, null, null, null);
-            List<DownloadTask> infoList = DownloadTask.readDownloadInfos(mContext, cursor);
+            List<Request> infoList = Request.readDownloadInfos(mContext, cursor);
             Closeables.closeSafely(cursor);
 
             // 修改
@@ -203,11 +203,11 @@ public final class DownloadProvider {
             }
             // 这些条目发生了改变
             Uri destUri = null;
-            for (DownloadTask info : infoList) {
+            for (Request info : infoList) {
                 // 1、状态发生改变
                 if (values.containsKey(Constants.COLUMN_STATUS)) {
                     // 成功的条目不能变,只能删除
-                    if (info.status == PartialInfo.STATUS_SUCCESS) {
+                    if (info.status == BlockInfo.STATUS_SUCCESS) {
                         continue;
                     }
                     int curStatus = (int) values.get(Constants.COLUMN_STATUS);
@@ -244,7 +244,7 @@ public final class DownloadProvider {
             Cursor cursor = mDb.query(Constants.DB_PARTIAL_TABLE,
                     new String[]{"*"},
                     selection, selectionArgs, null, null, null);
-            List<PartialInfo> infoList = PartialInfo.readPartialInfos(mContext, cursor);
+            List<BlockInfo> infoList = BlockInfo.readPartialInfos(mContext, cursor);
             Closeables.closeSafely(cursor);
 
             // 修改
@@ -256,7 +256,7 @@ public final class DownloadProvider {
 
             // 这些条目发生了改变
             Uri destUri = null;
-            for (PartialInfo info : infoList) {
+            for (BlockInfo info : infoList) {
                 // 1、状态发生改变
                 if (values.containsKey(Constants.PARTIAL_STATUS)) {
                     int curStatus = (int) values.get(Constants.PARTIAL_STATUS);
@@ -309,7 +309,7 @@ public final class DownloadProvider {
             // 先查出受影响的条目
             Cursor cursor = mDb.query(Constants.DB_TABLE, new String[]{"*"},
                     selection, selectionArgs, null, null, null);
-            List<DownloadTask> infoList = DownloadTask.readDownloadInfos(mContext, cursor);
+            List<Request> infoList = Request.readDownloadInfos(mContext, cursor);
             Closeables.closeSafely(cursor);
             delete = mDb.delete(Constants.DB_TABLE, selection, selectionArgs);
             if (delete == 0) {
@@ -326,12 +326,12 @@ public final class DownloadProvider {
             int downloadId = Integer.parseInt(selectionArgs[0]);
             Bundle bundle = new Bundle();
             bundle.putInt(Constants.KEY_ID, downloadId);
-            bundle.putInt(Constants.KEY_STATUS, DownloadTask.STATUS_CANCEL);// 新增一定是 STATUS_CANCEL
+            bundle.putInt(Constants.KEY_STATUS, Request.STATUS_CANCEL);// 新增一定是 STATUS_CANCEL
             bundle.putString(Constants.KEY_URI, Utils.generateDownloadUri(mContext, downloadId).toString());
             Utils.startDownloadService(mContext, bundle);
-            DownloadTask info = infoList.get(0);
+            Request info = infoList.get(0);
             Uri destUri = Utils.getDownloadBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
-                    .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(DownloadTask.STATUS_CANCEL))
+                    .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(Request.STATUS_CANCEL))
                     .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
                     .fragment(Constants.KEY_STATUS_CHANGE).build();
             mContext.getContentResolver().notifyChange(destUri, null);
@@ -347,7 +347,7 @@ public final class DownloadProvider {
             // 先查出受影响的条目
             Cursor cursor = mDb.query(Constants.DB_PARTIAL_TABLE, new String[]{"*"},
                     selection, selectionArgs, null, null, null);
-            List<PartialInfo> infoList = PartialInfo.readPartialInfos(mContext, cursor);
+            List<BlockInfo> infoList = BlockInfo.readPartialInfos(mContext, cursor);
             Closeables.closeSafely(cursor);
             // 分片
             delete = mDb.delete(Constants.DB_PARTIAL_TABLE, selection, selectionArgs);
@@ -355,10 +355,10 @@ public final class DownloadProvider {
                 // 一条没删成功，失败了
                 return 0;// 别通知CO了
             }
-            PartialInfo info = infoList.get(0);
+            BlockInfo info = infoList.get(0);
             Uri destUri = Utils.getPartialBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
                     .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
-                    .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(PartialInfo.STATUS_CANCEL))
+                    .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(BlockInfo.STATUS_CANCEL))
                     .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
                     .fragment(Constants.KEY_STATUS_CHANGE).build();
             mContext.getContentResolver().notifyChange(destUri, null);

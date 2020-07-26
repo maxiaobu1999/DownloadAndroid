@@ -6,7 +6,7 @@ import android.util.Log;
 
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.ProviderHelper;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
@@ -22,20 +22,20 @@ import java.io.InterruptedIOException;
 import java.util.concurrent.Callable;
 
 /** 普通下载 删除旧文件，重新下载 。服务端不支持局部下载时使用 */
-public class DownloadCallable implements Callable<DownloadTask> {
-    public static final String TAG = "【DownloadCallable】";
+public class DownCallable implements Callable<Request> {
+    public static final String TAG = "【DownCallable】";
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
-    private DownloadTask mInfo;
+    private Request mInfo;
     private Context mContext;
 
-    public DownloadCallable(Context context, DownloadTask info) {
+    public DownCallable(Context context, Request info) {
         mContext = context;
         mInfo = info;
     }
 
     @Override
-    public DownloadTask call() {
+    public Request call() {
         if (DEBUG) Log.d(TAG, "call()执行");
         CancelableThread mThread = (CancelableThread) Thread.currentThread();
 
@@ -49,7 +49,7 @@ public class DownloadCallable implements Callable<DownloadTask> {
         Connection connection = new Connection(mContext, httpInfo);
         ResponseInfo responseInfo = connection.getResponseInfo();
         if (responseInfo == null) {// 下载失败
-            ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+            ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
             return mInfo;
         }
         if (!TextUtils.isEmpty(responseInfo.contentType)) {
@@ -75,7 +75,7 @@ public class DownloadCallable implements Callable<DownloadTask> {
         // 请求服务器，获取输入流
         InputStream is = connection.getInputStream();
         if (is == null) {
-            ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+            ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
             return mInfo;
         }
 
@@ -85,7 +85,7 @@ public class DownloadCallable implements Callable<DownloadTask> {
             os = Utils.getOutputStream(mContext, mInfo);
             if (os == null) {
                 if (DEBUG) Log.e(TAG, "下载失败,存储路径不可写");
-                ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_FAIL, mInfo);
+                ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
                 return mInfo;
             }
             final int defaultBufferSize = 1024 * 3;
@@ -105,12 +105,12 @@ public class DownloadCallable implements Callable<DownloadTask> {
             }
             os.flush();
             // 下载完成
-            mInfo.status = DownloadTask.STATUS_SUCCESS;
+            mInfo.status = Request.STATUS_SUCCESS;
             ProviderHelper.onStatusChange(mContext, mInfo);
         } catch (InterruptedIOException e) {
             // task被取消,finally会执行
         } catch (Exception e) {
-            mInfo.status = DownloadTask.STATUS_FAIL;
+            mInfo.status = Request.STATUS_FAIL;
             ProviderHelper.onStatusChange(mContext, mInfo);
             e.printStackTrace();
         } finally {

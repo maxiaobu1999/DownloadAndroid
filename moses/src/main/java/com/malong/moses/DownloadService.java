@@ -15,12 +15,12 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.malong.moses.callable.BreakpointCallable;
-import com.malong.moses.callable.DownloadCallable;
-import com.malong.moses.callable.PartialCallable;
-import com.malong.moses.callable.SubCallable;
-import com.malong.moses.partial.PartialInfo;
-import com.malong.moses.partial.PartialProviderHelper;
+import com.malong.moses.callable.DownBreakpointCallable;
+import com.malong.moses.callable.DownCallable;
+import com.malong.moses.callable.DownBlockCallable;
+import com.malong.moses.callable.DownSubCallable;
+import com.malong.moses.block.BlockInfo;
+import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.utils.Utils;
 
 import java.util.HashMap;
@@ -106,27 +106,27 @@ public class DownloadService extends Service {
         if (DEBUG) Log.d(TAG, " parseDownload()执行");
         int status = bundle.getInt(Constants.KEY_STATUS, -1);
         int id = bundle.getInt(Constants.KEY_ID, -1);
-        DownloadTask info = ProviderHelper.queryDownloadInfo(mContext, id);
-        if (status == DownloadTask.STATUS_PENDING) {
+        Request info = ProviderHelper.queryDownloadInfo(mContext, id);
+        if (status == Request.STATUS_PENDING) {
             //  添加
             if (info == null) {// ID无效
                 return;
             }
-            Callable<DownloadTask> callable = null;
-            if (info.method == DownloadTask.METHOD_COMMON) {
+            Callable<Request> callable = null;
+            if (info.method == Request.METHOD_COMMON) {
                 // 删除旧文件，重新下载
-                callable = new DownloadCallable(mContext, info);
-            } else if (info.method == DownloadTask.METHOD_BREAKPOINT) {
+                callable = new DownCallable(mContext, info);
+            } else if (info.method == Request.METHOD_BREAKPOINT) {
                 // 断点续传
-                callable = new BreakpointCallable(mContext, info);
-            } else if (info.method == DownloadTask.METHOD_PARTIAL) {
+                callable = new DownBreakpointCallable(mContext, info);
+            } else if (info.method == Request.METHOD_PARTIAL) {
                 // 分片下载
-                callable = new PartialCallable(mContext, info);
+                callable = new DownBlockCallable(mContext, info);
             }
             if (callable != null) {
                 // 状态变为正在下载
-                ProviderHelper.updateStatus(mContext, DownloadTask.STATUS_RUNNING, info);
-                FutureTask<DownloadTask> futureTask = new FutureTask<>(callable);
+                ProviderHelper.updateStatus(mContext, Request.STATUS_RUNNING, info);
+                FutureTask<Request> futureTask = new FutureTask<>(callable);
                 mTaskMap.put(info.id, futureTask);
                 if (DEBUG) {
                     Log.d(TAG, "启动call：uri=" +
@@ -134,7 +134,7 @@ public class DownloadService extends Service {
                 }
                 mExecutor.execute(futureTask);
             }
-        } else if (status == DownloadTask.STATUS_PAUSE) {
+        } else if (status == Request.STATUS_PAUSE) {
             // 停止
             if (info == null) {// ID无效
                 return;
@@ -149,7 +149,7 @@ public class DownloadService extends Service {
             }
 //             状态变为停止
 //            ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_PAUSE, info);
-        } else if (status == DownloadTask.STATUS_CANCEL) {
+        } else if (status == Request.STATUS_CANCEL) {
 
             // 删除任务
             if (mTaskMap.containsKey(id)) {
@@ -166,13 +166,13 @@ public class DownloadService extends Service {
         if (DEBUG) Log.d(TAG, "parsePartial() 执行");
         int status = bundle.getInt(Constants.KEY_STATUS, -1);
         int id = bundle.getInt(Constants.KEY_ID, -1);
-        PartialInfo info = PartialProviderHelper.queryPartialInfo(mContext, id);
-        if (status == PartialInfo.STATUS_PENDING) {
+        BlockInfo info = BlockProviderHelper.queryPartialInfo(mContext, id);
+        if (status == BlockInfo.STATUS_PENDING) {
 //            if (info == null) {// ID无效
 //
 //                return;
 //            }
-            Callable<PartialInfo> callable = new SubCallable(mContext, info);
+            Callable<BlockInfo> callable = new DownSubCallable(mContext, info);
 //            if (info.method == DownloadInfo.METHOD_COMMON) {
 //                // 删除旧文件，重新下载
 //                callable = new DownloadCallable(mContext, info);
@@ -189,24 +189,24 @@ public class DownloadService extends Service {
                             Utils.generatePartialBUri(mContext, info.id).toString());
                 }
                 // 状态变为正在下载
-                PartialProviderHelper.updatePartialStutas(mContext, DownloadTask.STATUS_RUNNING, info);
-                FutureTask<PartialInfo> futureTask = new FutureTask<>(callable);
+                BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_RUNNING, info);
+                FutureTask<BlockInfo> futureTask = new FutureTask<>(callable);
                 mPartialTaskMap.put(info.id, futureTask);
                 mExecutor.execute(futureTask);
             }
-        } else if (status == PartialInfo.STATUS_STOP) {
+        } else if (status == BlockInfo.STATUS_STOP) {
             // 停止分片任务,
-            PartialInfo partialInfo = PartialProviderHelper.queryPartialInfo(mContext, id);
+            BlockInfo partialInfo = BlockProviderHelper.queryPartialInfo(mContext, id);
             FutureTask task = mPartialTaskMap.get(partialInfo.id);
             if (task != null) {
                 boolean cancel = task.cancel(true);
                 if (DEBUG) Log.d(TAG, "partialInfo.id:停止" + partialInfo.id + cancel);
             }
-        } else if (status == PartialInfo.STATUS_CANCEL) {
+        } else if (status == BlockInfo.STATUS_CANCEL) {
             // 停止分片任务,
-            List<PartialInfo> partialInfoList = PartialProviderHelper
+            List<BlockInfo> partialInfoList = BlockProviderHelper
                     .queryPartialInfoList(mContext, id);
-            for (PartialInfo partialInfo : partialInfoList) {
+            for (BlockInfo partialInfo : partialInfoList) {
                 FutureTask task = mPartialTaskMap.get(partialInfo.id);
                 if (task != null) {
                     boolean cancel = task.cancel(true);
@@ -257,7 +257,7 @@ public class DownloadService extends Service {
         first = false;
         // 首次启动 处理下一半的任务,running 2 pending
         int update = ProviderHelper.updateStatus(mContext,
-                DownloadTask.STATUS_PENDING, DownloadTask.STATUS_RUNNING);
+                Request.STATUS_PENDING, Request.STATUS_RUNNING);
         if (DEBUG) Log.d(TAG, "onFirstStart():有【" + update
                 + "】个STATUS_RUNNING变为STATUS_PENDING");
 

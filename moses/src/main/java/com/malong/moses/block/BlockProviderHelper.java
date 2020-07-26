@@ -1,4 +1,4 @@
-package com.malong.moses.partial;
+package com.malong.moses.block;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -11,22 +11,21 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.malong.moses.BuildConfig;
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.utils.Closeables;
 import com.malong.moses.utils.Utils;
 
 import java.util.List;
 
-public class PartialProviderHelper {
-    public static final String TAG = "【PartialProviderHelper】";
+public class BlockProviderHelper {
+    public static final String TAG = "【BlockProviderHelper】";
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
 
 
     // 更新，不含status & 下载进度
-    public static int updateDownloadInfoPortion(Context context, DownloadTask info) {
+    public static int updateDownloadInfoPortion(Context context, Request info) {
         Uri uri = Utils.generateDownloadUri(context, info.id);
         ContentValues values = info.info2ContentValues();
         values.remove(Constants.COLUMN_STATUS);
@@ -38,15 +37,15 @@ public class PartialProviderHelper {
 
     // 查询下载条目
     @Nullable
-    public static PartialInfo queryPartialInfo(Context context, int partailId) {
-        PartialInfo info = null;
+    public static BlockInfo queryPartialInfo(Context context, int partailId) {
+        BlockInfo info = null;
         Cursor cursor = context.getContentResolver().query(Utils.getPartialBaseUri(context),
                 new String[]{"*"},
                 Constants._ID + "=?",
                 new String[]{String.valueOf(partailId)}, null, null
         );
 
-        List<PartialInfo> infoList = PartialInfo.readPartialInfos(context, cursor);
+        List<BlockInfo> infoList = BlockInfo.readPartialInfos(context, cursor);
         Closeables.closeSafely(cursor);
         if (infoList.size() > 0) {
             info = infoList.get(0);
@@ -56,14 +55,14 @@ public class PartialProviderHelper {
 
     // 查询下载条目
     @NonNull
-    public static List<PartialInfo> queryPartialInfoList(Context context, int downloadId) {
+    public static List<BlockInfo> queryPartialInfoList(Context context, int downloadId) {
         Cursor cursor = context.getContentResolver().query(Utils.getPartialBaseUri(context),
                 new String[]{"*"},
                 Constants.PARTIAL_DOWNLOAD_ID + "=?",
                 new String[]{String.valueOf(downloadId)}, null, null
         );
 
-        List<PartialInfo> infoList = PartialInfo.readPartialInfos(context, cursor);
+        List<BlockInfo> infoList = BlockInfo.readPartialInfos(context, cursor);
         Closeables.closeSafely(cursor);
         return infoList;
     }
@@ -85,7 +84,7 @@ public class PartialProviderHelper {
 //    }
 
     // 更新状态
-    public static int updatePartialStutas(Context context, int status, PartialInfo info) {
+    public static int updatePartialStutas(Context context, int status, BlockInfo info) {
         if (DEBUG) Log.d(TAG, "ID:" + info.id + ";状态" + info.status + "变为" + status);
 //        // success 2 pauseDownload 忽略
 //        if (info.status == PartialInfo.STATUS_SUCCESS && status == PartialInfo.STATUS_PAUSE) {
@@ -101,7 +100,7 @@ public class PartialProviderHelper {
     }
 
     /** 修改分片进度 */
-    public static void updatePartialProcess(Context context, PartialInfo info) {
+    public static void updatePartialProcess(Context context, BlockInfo info) {
         Uri uri = Utils.generatePartialBUri(context, info.id);
         ContentValues values = new ContentValues();
         values.put(Constants.PARTIAL_CURRENT_BYTES, info.current_bytes);
@@ -124,8 +123,8 @@ public class PartialProviderHelper {
 
     /** 插入新条目，主键无意义都会自增 */
     @Nullable
-    public static Uri insert(Context context, PartialInfo info) {
-        ContentValues values = PartialInfo.info2ContentValues(info);
+    public static Uri insert(Context context, BlockInfo info) {
+        ContentValues values = BlockInfo.info2ContentValues(info);
         Uri affectedUri = context.getContentResolver()
                 .insert(Utils.getPartialBaseUri(context), values);
         if (affectedUri == null) {
@@ -137,14 +136,14 @@ public class PartialProviderHelper {
         // 通知service
         Bundle bundle = new Bundle();
         bundle.putInt(Constants.KEY_ID, Utils.getPartialId(context, affectedUri));
-        bundle.putInt(Constants.KEY_STATUS, DownloadTask.STATUS_PENDING);// 新增一定是PENDING
+        bundle.putInt(Constants.KEY_STATUS, Request.STATUS_PENDING);// 新增一定是PENDING
         bundle.putString(Constants.KEY_URI, affectedUri.toString());
         Utils.startDownloadService(context, bundle);
         return affectedUri;
     }
 
     /** 删除新条目 */
-    public static int delete(Context context, DownloadTask info) {
+    public static int delete(Context context, Request info) {
         ContentResolver resolver = context.getContentResolver();
         return resolver.delete(Utils.getPartialBaseUri(context),
                 Constants.PARTIAL_DOWNLOAD_ID + "=?",

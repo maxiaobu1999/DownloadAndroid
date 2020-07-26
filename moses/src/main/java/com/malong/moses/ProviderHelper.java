@@ -21,7 +21,7 @@ public class ProviderHelper {
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
 
-    public static void insertInfo(Context context, DownloadTask info) {
+    public static void insertInfo(Context context, Request info) {
         if (!TextUtils.isEmpty(info.destination_uri)) {
 
         }
@@ -29,7 +29,7 @@ public class ProviderHelper {
     }
 
 
-    public static void updateProcess(Context context, DownloadTask info) {
+    public static void updateProcess(Context context, Request info) {
         Uri uri = Utils.generateDownloadUri(context,info.id);
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_CURRENT_BYTES, info.current_bytes);
@@ -47,15 +47,15 @@ public class ProviderHelper {
 
     // 查询下载条目
     @Nullable
-    public static DownloadTask queryDownloadInfo(Context context, int downloadId) {
-        DownloadTask info = null;
+    public static Request queryDownloadInfo(Context context, int downloadId) {
+        Request info = null;
         Cursor cursor = context.getContentResolver().query(Utils.getDownloadBaseUri(context),
                 new String[]{"*"},
                 Constants._ID + "=?",
                 new String[]{String.valueOf(downloadId)}, null, null
         );
 
-        List<DownloadTask> infoList = DownloadTask.readDownloadInfos(context, cursor);
+        List<Request> infoList = Request.readDownloadInfos(context, cursor);
         Closeables.closeSafely(cursor);
         if (infoList.size() > 0) {
             info = infoList.get(0);
@@ -87,7 +87,7 @@ public class ProviderHelper {
                 new String[]{String.valueOf(id)}, null, null
         );
         if (cursor == null || !cursor.moveToFirst()) {
-            return DownloadTask.STATUS_NONE;
+            return Request.STATUS_NONE;
         }
         int status = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_STATUS));
         Closeables.closeSafely(cursor);
@@ -95,11 +95,11 @@ public class ProviderHelper {
     }
 
     // 查询状态
-    public static int queryStutas(Context context, DownloadTask info) {
+    public static int queryStutas(Context context, Request info) {
         int id = info.id;
         if (id <= 0) {
             // 没有设置id，表示需要根据内容查找对应的ID
-            DownloadTask downloadTask = queryOldDownload(context, info);
+            Request downloadTask = queryOldDownload(context, info);
             if (downloadTask != null) {
                 id= downloadTask.id;
             }
@@ -111,7 +111,7 @@ public class ProviderHelper {
                 new String[]{String.valueOf(id)}, null, null
         );
         if (cursor == null || !cursor.moveToFirst()) {
-            return DownloadTask.STATUS_NONE;// 还没有 return none 表示没有记录
+            return Request.STATUS_NONE;// 还没有 return none 表示没有记录
         }
         int status = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_STATUS));
         Closeables.closeSafely(cursor);
@@ -119,7 +119,7 @@ public class ProviderHelper {
     }
 
     // 更新状态
-    public static int updateStatus(Context context, int status, DownloadTask info) {
+    public static int updateStatus(Context context, int status, Request info) {
         if (DEBUG) Log.d(TAG, "更新状态ID:" + info.id + ";状态" + info.status + "变为" + status);
         Uri uri = Utils.generateDownloadUri(context, info.id);
         info.status = status;
@@ -141,7 +141,7 @@ public class ProviderHelper {
     }
 
     // 更新，不含status & 下载进度
-    public static int updateDownloadInfoPortion(Context context, DownloadTask info) {
+    public static int updateDownloadInfoPortion(Context context, Request info) {
         Uri uri = Utils.generateDownloadUri(context, info.id);
         ContentValues values = info.info2ContentValues();
         values.remove(Constants.COLUMN_STATUS);
@@ -151,7 +151,7 @@ public class ProviderHelper {
     }
 
     // 更新etag
-    public static int updateEtag(Context context, String etag, DownloadTask info) {
+    public static int updateEtag(Context context, String etag, Request info) {
         Uri uri = Utils.generateDownloadUri(context, info.id);
         info.etag = etag;
         ContentValues values = new ContentValues();
@@ -160,14 +160,14 @@ public class ProviderHelper {
                 , new String[]{String.valueOf(info.id)});
     }
 
-    public static DownloadTask queryDownloadInfo(Context context, Uri uri) {
+    public static Request queryDownloadInfo(Context context, Uri uri) {
         int downloadId = Utils.getDownloadId(context, uri);
         Cursor cursor = context.getContentResolver().query(uri,
                 new String[]{"*"},
                 Constants._ID + "=?",
                 new String[]{String.valueOf(downloadId)}, null, null
         );
-        List<DownloadTask> downloadInfos = DownloadTask.readDownloadInfos(context, cursor);
+        List<Request> downloadInfos = Request.readDownloadInfos(context, cursor);
         Closeables.closeSafely(cursor);
         if (downloadInfos.size() > 0) {
             return downloadInfos.get(0);
@@ -176,7 +176,7 @@ public class ProviderHelper {
     }
 
     // 状态改变
-    public static int onStatusChange(Context context, DownloadTask info) {
+    public static int onStatusChange(Context context, Request info) {
         Uri uri = Utils.generateDownloadUri(context, info.id);
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_STATUS, info.status);
@@ -194,13 +194,13 @@ public class ProviderHelper {
 //    }
 
     // url 查 info
-    public static List<DownloadTask> queryByUrl(Context context, String url) {
+    public static List<Request> queryByUrl(Context context, String url) {
         Cursor query = context.getContentResolver()
                 .query(Utils.getDownloadBaseUri(context),
                         new String[]{"*"},
                         Constants.COLUMN_DOWNLOAD_URL + "=?",
                         new String[]{url}, null, null);
-        List<DownloadTask> list = DownloadTask.readDownloadInfos(context, query);
+        List<Request> list = Request.readDownloadInfos(context, query);
         Closeables.closeSafely(query);
         return list;
     }
@@ -214,7 +214,7 @@ public class ProviderHelper {
      * @return 对应的条目信息
      */
     @Nullable
-    public static DownloadTask queryOldDownload(Context context, DownloadTask info) {
+    public static Request queryOldDownload(Context context, Request info) {
         ContentResolver resolver = context.getContentResolver();
         // 检查之前下载过
         Cursor cursor = null;
@@ -236,7 +236,7 @@ public class ProviderHelper {
                     new String[]{info.download_url, info.destination_path, info.fileName},
                     null, null);
         }
-        List<DownloadTask> infoList = DownloadTask.readDownloadInfos(context, cursor);
+        List<Request> infoList = Request.readDownloadInfos(context, cursor);
         Closeables.closeSafely(cursor);
 
         if (infoList.size() == 1) {
@@ -253,7 +253,7 @@ public class ProviderHelper {
      * 插入新条目，主键无意义都会自增
      */
     @Nullable
-    public static Uri insert(Context context, DownloadTask info) {
+    public static Uri insert(Context context, Request info) {
         ContentValues values = info.info2ContentValues();
         Uri downloadUri = context.getContentResolver()
                 .insert(Utils.getDownloadBaseUri(context), values);
@@ -265,7 +265,7 @@ public class ProviderHelper {
         // 通知service
         Bundle bundle = new Bundle();
         bundle.putInt(Constants.KEY_ID, Utils.getDownloadId(context, downloadUri));
-        bundle.putInt(Constants.KEY_STATUS, DownloadTask.STATUS_PENDING);// 新增一定是PENDING
+        bundle.putInt(Constants.KEY_STATUS, Request.STATUS_PENDING);// 新增一定是PENDING
         bundle.putString(Constants.KEY_URI, downloadUri.toString());
         if (DEBUG) Log.d(TAG, "insert(）新增下载:" + downloadUri.toString());
         Utils.startDownloadService(context, bundle);
@@ -275,7 +275,7 @@ public class ProviderHelper {
     /**
      * 删除新条目
      */
-    public static int delete(Context context, DownloadTask info) {
+    public static int delete(Context context, Request info) {
         ContentResolver resolver = context.getContentResolver();
         int deleteNum = resolver.delete(Utils.getDownloadBaseUri(context),
                 Constants._ID + "=?",

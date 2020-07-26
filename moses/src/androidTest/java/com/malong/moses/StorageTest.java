@@ -78,14 +78,14 @@ public class StorageTest {
         }
         String filePath = mContext.getFilesDir() + File.separator + fileName;// /data/user/0/com.malong.downloadsample/files
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         builder.setFileName(fileName);
-        DownloadTask info = builder.build();
+        Request info = builder.build();
 
         Download manager = Download.getInstance();
-       DownloadTask task = manager.doDownload(mContext, info);
+       Request task = manager.doDownload(mContext, info);
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onStatusChange(Uri uri, int status) {
@@ -204,7 +204,7 @@ public class StorageTest {
         // try括号内的资源会在try语句结束后自动释放，前提是这些可关闭的资源必须实现 java.lang.AutoCloseable 接口。
         try (ParcelFileDescriptor pfd = resolver
                 .openFileDescriptor(item, "w", null)) {
-            DownloadTask info = new DownloadTask.Builder().setDownloadUrl(Constants.BASE_URL + Constants.IMAGE_NAME)
+            Request info = new Request.Builder().setDownloadUrl(Constants.BASE_URL + Constants.IMAGE_NAME)
                     .setDescription_uri(item).setFileName("IMG1024.JPG").build();
 
             HttpInfo httpInfo = new HttpInfo();
@@ -213,7 +213,7 @@ public class StorageTest {
             httpInfo.destination_path = info.destination_path;
             httpInfo.fileName = info.fileName;
 //            httpInfo.status = info.status;
-            httpInfo.method = DownloadTask.METHOD_PARTIAL;
+            httpInfo.method = Request.METHOD_PARTIAL;
             httpInfo.total_bytes = info.total_bytes;
             httpInfo.current_bytes = info.current_bytes;
 //            Http http = new Http(mContext, httpInfo);
@@ -378,14 +378,14 @@ public class StorageTest {
         String filePath = mContext.getFilesDir().getAbsolutePath();
         String fileName = FileUtils.getFileNameFromUrl(downloadUrl);
 
-        DownloadTask.Builder builder = new DownloadTask.Builder();
+        Request.Builder builder = new Request.Builder();
         builder.setDownloadUrl(downloadUrl);
         builder.setDescription_path(filePath);
         Assert.assertNotNull(fileName);
         builder.setFileName(fileName);
-        builder.setMethod(DownloadTask.METHOD_PARTIAL);
+        builder.setMethod(Request.METHOD_PARTIAL);
         builder.setSeparate_num(4);
-        final DownloadTask info = builder.build();
+        final Request info = builder.build();
 
         Uri insert = ProviderHelper.insert(mContext, info);
         int downloadId = Utils.getDownloadId(mContext, insert);

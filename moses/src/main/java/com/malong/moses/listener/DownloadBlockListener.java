@@ -8,7 +8,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.malong.moses.Constants;
-import com.malong.moses.DownloadTask;
+import com.malong.moses.Request;
 import com.malong.moses.utils.Utils;
 
 /**
@@ -19,7 +19,7 @@ public class DownloadBlockListener {
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
     Context mContext;
-    DownloadTask mTask;
+    Request mTask;
     private ContentObserver mObserver;
 
 

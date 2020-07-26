@@ -16,18 +16,6 @@
 
 package com.malong.sample.util;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.content.Context;
-import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
-
-import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
-
 //import com.liulishuo.okdownload.DownloadTask;
 //import com.liulishuo.okdownload.SpeedCalculator;
 //import com.liulishuo.okdownload.core.breakpoint.BlockInfo;
@@ -37,11 +25,6 @@ import androidx.core.app.NotificationCompat;
 //import com.liulishuo.okdownload.core.listener.assist.Listener4SpeedAssistExtend;
 //import com.liulishuo.okdownload.sample.R;
 
-import com.malong.moses.DownloadTask;
-import com.malong.sample.R;
-
-import java.util.List;
-import java.util.Map;
 
 public class NotificationSampleListener
 //        extends DownloadListener4WithSpeed

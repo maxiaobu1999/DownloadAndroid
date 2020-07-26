@@ -13,7 +13,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DownloadTask {
+public class Request {
     /** 啥记录没有 */
     public static final int STATUS_NONE = 0;
     /** 准备开始下载 */
@@ -175,13 +175,13 @@ public class DownloadTask {
     public long mRangeEndByte = -1;
 
     @NonNull
-    public static List<DownloadTask> readDownloadInfos(Context context, @Nullable Cursor cursor) {
-        ArrayList<DownloadTask> infoList = new ArrayList<>();
+    public static List<Request> readDownloadInfos(Context context, @Nullable Cursor cursor) {
+        ArrayList<Request> infoList = new ArrayList<>();
         if (cursor == null) {
             return infoList;
         }
         for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
-            DownloadTask info = new DownloadTask();
+            Request info = new Request();
             if (cursor.getColumnIndex(Constants._ID) != -1)
                 info.id = cursor.getInt(cursor.getColumnIndexOrThrow(Constants._ID));
             if (cursor.getColumnIndex(Constants.COLUMN_STATUS) != -1)
@@ -216,7 +216,7 @@ public class DownloadTask {
 
 
     public  ContentValues info2ContentValues() {
-        DownloadTask info = this;
+        Request info = this;
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_STATUS, info.status);
         values.put(Constants.COLUMN_DOWNLOAD_URL, info.download_url);
@@ -247,21 +247,21 @@ public class DownloadTask {
 
 
     public static class Builder {
-        private DownloadTask mInfo;
+        private Request mInfo;
 
         public Builder() {
-            mInfo = new DownloadTask();
+            mInfo = new Request();
             // 设置默认值
             mInfo.destination_uri = "";
             mInfo.destination_path = "";
 
-            mInfo.status = DownloadTask.STATUS_PENDING;
-            mInfo.method = DownloadTask.METHOD_COMMON;
+            mInfo.status = Request.STATUS_PENDING;
+            mInfo.method = Request.METHOD_COMMON;
             mInfo.total_bytes = 0;
             mInfo.current_bytes = 0;
         }
 
-        public DownloadTask build() {
+        public Request build() {
             // 下载地址必须有
             if (TextUtils.isEmpty(mInfo.download_url)) {
                 throw new RuntimeException("下载地址必须有");
@@ -275,7 +275,7 @@ public class DownloadTask {
                 throw new RuntimeException("没有设置文件名");
             }
             if (!TextUtils.isEmpty(mInfo.destination_uri)
-                    && mInfo.method == DownloadTask.METHOD_BREAKPOINT) {
+                    && mInfo.method == Request.METHOD_BREAKPOINT) {
 
             }
             return mInfo;

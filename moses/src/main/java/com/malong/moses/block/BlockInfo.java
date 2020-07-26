@@ -1,4 +1,4 @@
-package com.malong.moses.partial;
+package com.malong.moses.block;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** 分片实体类 */
-public class PartialInfo {
+public class BlockInfo {
 
 
     /** 过去没有开始下载 */
@@ -56,13 +56,13 @@ public class PartialInfo {
 
 
     @NonNull
-    public static List<PartialInfo> readPartialInfos(Context context, @Nullable Cursor cursor) {
-        ArrayList<PartialInfo> infoList = new ArrayList<>();
+    public static List<BlockInfo> readPartialInfos(Context context, @Nullable Cursor cursor) {
+        ArrayList<BlockInfo> infoList = new ArrayList<>();
         if (cursor == null) {
             return infoList;
         }
         for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
-            PartialInfo info = new PartialInfo();
+            BlockInfo info = new BlockInfo();
             if (cursor.getColumnIndex(Constants._ID) != -1)
                 info.id = cursor.getInt(cursor.getColumnIndexOrThrow(Constants._ID));
             if (cursor.getColumnIndex(Constants.PARTIAL_DOWNLOAD_ID) != -1)
@@ -97,7 +97,7 @@ public class PartialInfo {
     }
 
 
-    public static ContentValues info2ContentValues(PartialInfo info) {
+    public static ContentValues info2ContentValues(BlockInfo info) {
         ContentValues values = new ContentValues();
         values.put(Constants.PARTIAL_DOWNLOAD_ID, info.download_id);
         values.put(Constants.PARTIAL_STATUS, info.status);
