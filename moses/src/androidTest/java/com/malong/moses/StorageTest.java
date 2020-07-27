@@ -85,7 +85,8 @@ public class StorageTest {
         Request info = builder.build();
 
         Download manager = Download.getInstance();
-       Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onStatusChange(Uri uri, int status) {

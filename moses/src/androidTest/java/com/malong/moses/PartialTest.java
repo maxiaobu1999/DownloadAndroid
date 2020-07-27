@@ -80,7 +80,8 @@ public class PartialTest {
 
         // 1、下载
         final Download manager = Download.getInstance();
-        Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
@@ -142,7 +143,8 @@ public class PartialTest {
 
         // 1、下载
         final Download manager = Download.getInstance();
-       Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
@@ -240,10 +242,12 @@ public class PartialTest {
 
         // 1、下载 两次
         final Download manager = Download.getInstance();
-        Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
         List<Request> downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
-        Request task2 = manager.doDownload(mContext, info);
+        int  downloadId2 = Download.doDownload(mContext, info);
+        Request task2 =Download.queryDownloadInfo(mContext, downloadId);
         Thread.sleep(200);
         downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
@@ -340,7 +344,8 @@ public class PartialTest {
 
 
         // 1、下载
-        Request task = Download.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override

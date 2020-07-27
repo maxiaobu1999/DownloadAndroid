@@ -66,7 +66,8 @@ public class DownloadManagerTest {
         Request info = builder.build();
 
         Download manager = Download.getInstance();
-        Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
@@ -119,7 +120,8 @@ public class DownloadManagerTest {
 
 
         Download manager = Download.getInstance();
-        Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
             public void onProcessChange(Uri uri, long cur,long length) {
@@ -159,7 +161,8 @@ public class DownloadManagerTest {
         Request info = builder.build();
 
         Download manager = Download.getInstance();
-        Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
@@ -209,7 +212,8 @@ public class DownloadManagerTest {
 
         // 开始下载
         final Download manager = Download.getInstance();
-        Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
         // 注册监听
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
@@ -284,7 +288,8 @@ public class DownloadManagerTest {
 
         // 开始下载
         final Download manager = Download.getInstance();
-        Request task = manager.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
         // 注册监听
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;

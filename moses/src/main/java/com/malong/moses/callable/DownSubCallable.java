@@ -83,6 +83,7 @@ public class DownSubCallable implements Callable<BlockInfo> {
                 mInfo.current_bytes = size;
                 if (DEBUG) Log.d(TAG, " mInfo.current_bytes="+ mInfo.current_bytes);
 
+                // 这里引发的下载慢
                 BlockProviderHelper.updatePartialProcess(mContext, mInfo);
             }
             // 下载完成

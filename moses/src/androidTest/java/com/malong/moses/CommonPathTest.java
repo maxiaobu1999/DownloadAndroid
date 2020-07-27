@@ -75,7 +75,8 @@ public class CommonPathTest {
 
 
         // 1、下载
-        Request task = Download.doDownload(mContext, info);
+        int downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             @Override
@@ -132,7 +133,8 @@ public class CommonPathTest {
 
 
         // 1、下载
-        Request task = Download.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
 
         ContentObserver mObserver = new DownloadContentObserver(mContext) {
             boolean hasStop = false;
@@ -212,10 +214,12 @@ public class CommonPathTest {
 
 
         // 1、下载 两次
-        Request task = Download.doDownload(mContext, info);
+        int  downloadId = Download.doDownload(mContext, info);
+        Request task =Download.queryDownloadInfo(mContext, downloadId);
         List<Request> downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
-        Request task2 = Download.doDownload(mContext, info);
+        int  downloadId2 = Download.doDownload(mContext, info);
+        Request task2 =Download.queryDownloadInfo(mContext, downloadId);
         downloadInfos = ProviderHelper.queryByUrl(mContext, downloadUrl);
         Assert.assertEquals(1, downloadInfos.size());
         assert task != null;
