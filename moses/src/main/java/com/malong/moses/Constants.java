@@ -7,7 +7,6 @@ public class Constants {
     public static final String ZHU_XIAN_NAME = "诛仙.txt";// 诛仙小说 size：4557690
     public static boolean DEBUG = true;
 
-
     public static final String KEY_STATUS = "status";
     public static final String KEY_STATUS_CHANGE = "status_change";
     public static final String KEY_PROCESS_CHANGE = "process_change";

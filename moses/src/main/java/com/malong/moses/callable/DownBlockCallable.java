@@ -11,13 +11,13 @@ import android.util.Log;
 import com.malong.moses.BlockContentObserver;
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
-import com.malong.moses.Request;
 import com.malong.moses.ProviderHelper;
+import com.malong.moses.Request;
+import com.malong.moses.block.BlockInfo;
+import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
 import com.malong.moses.connect.ResponseInfo;
-import com.malong.moses.block.BlockInfo;
-import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.utils.Utils;
 
 import java.lang.reflect.Field;
@@ -88,7 +88,8 @@ public class DownBlockCallable implements Callable<Request> {
                 mInfo.total_bytes = responseInfo.contentLength;
             } else {
                 if (DEBUG) Log.e(TAG,
-                        "无法下载，响应头 Content-Length 获取不到文件size。下载地址：" + mInfo.download_url);
+                        "无法下载，响应头 Content-Length 获取不到文件size。下载地址："
+                                + mInfo.download_url);
                 ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
                 return mInfo;
             }
@@ -224,6 +225,7 @@ public class DownBlockCallable implements Callable<Request> {
             }
         }
     }
+
 
     private void quitLooper() {
         Looper looper = Looper.myLooper();

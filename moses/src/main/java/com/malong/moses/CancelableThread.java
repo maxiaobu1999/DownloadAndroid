@@ -14,4 +14,12 @@ public class CancelableThread extends Thread {
         cancel = true;
         //            super.interrupt();
     }
+
+    public void test(){
+        retry:
+        break retry;
+    }
+
+
+
 }

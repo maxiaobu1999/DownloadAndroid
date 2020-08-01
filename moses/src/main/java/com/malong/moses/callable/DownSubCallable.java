@@ -6,10 +6,10 @@ import android.util.Log;
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
 import com.malong.moses.Request;
-import com.malong.moses.connect.Connection;
-import com.malong.moses.connect.HttpInfo;
 import com.malong.moses.block.BlockInfo;
 import com.malong.moses.block.BlockProviderHelper;
+import com.malong.moses.connect.Connection;
+import com.malong.moses.connect.HttpInfo;
 import com.malong.moses.utils.Closeables;
 
 import java.io.File;
@@ -87,7 +87,6 @@ public class DownSubCallable implements Callable<BlockInfo> {
                 BlockProviderHelper.updatePartialProcess(mContext, mInfo);
             }
             // 下载完成
-//            mInfo.status = DownloadTask.STATUS_SUCCESS;
             BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_SUCCESS,mInfo);
         } catch (InterruptedIOException e) {
             // 下载被取消,finally会执行
@@ -103,5 +102,24 @@ public class DownSubCallable implements Callable<BlockInfo> {
         }
         return null;
     }
+//    /**
+//     * Report download progress through the database if necessary.
+//     *
+//     * @param state      state
+//     * @param innerState innerState
+//     */
+//    private void reportProgress(State state, InnerState innerState) {
+//        long now = mISystemFacade.currentTimeMillis();
+//        if (innerState.mBytesSoFar - innerState.mBytesNotified
+//                > Constants.MIN_PROGRESS_STEP
+//                && now - innerState.mTimeLastNotification
+//                > Constants.MIN_PROGRESS_TIME) {
+//            ContentValues values = new ContentValues();
+//            values.put(Downloads.Impl.COLUMN_CURRENT_BYTES, innerState.mBytesSoFar);
+//            mContext.getContentResolver().update(mInfo.getAllDownloadsUri(), values, null, null);
+//            innerState.mBytesNotified = innerState.mBytesSoFar;
+//            innerState.mTimeLastNotification = now;
+//        }
+//    }
 
 }

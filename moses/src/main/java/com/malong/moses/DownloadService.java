@@ -15,25 +15,25 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.malong.moses.callable.DownBreakpointCallable;
-import com.malong.moses.callable.DownCallable;
-import com.malong.moses.callable.DownBlockCallable;
-import com.malong.moses.callable.DownSubCallable;
 import com.malong.moses.block.BlockInfo;
 import com.malong.moses.block.BlockProviderHelper;
+import com.malong.moses.callable.DownBlockCallable;
+import com.malong.moses.callable.DownBreakpointCallable;
+import com.malong.moses.callable.DownCallable;
+import com.malong.moses.callable.DownSubCallable;
 import com.malong.moses.utils.Utils;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+
 // https://developer.android.com/training/testing/integration-testing/service-testing?hl=zh-cn
 // 单测
-
 public class DownloadService extends Service {
     public static final String TAG = "【DownloadService】";
     @SuppressWarnings("PointlessBooleanExpression")
@@ -47,7 +47,7 @@ public class DownloadService extends Service {
     /** 工作线程Handler */
     private WorkHandler mWorkHandler;
     /** 下载线程池 */
-    private ExecutorService mExecutor;
+    private ThreadPoolExecutor mExecutor;
     /** 任务集合 <下载id,下载任务> */
     private HashMap<Integer, FutureTask> mTaskMap = new HashMap<>();
     private HashMap<Integer, FutureTask> mPartialTaskMap = new HashMap<>();
@@ -72,8 +72,13 @@ public class DownloadService extends Service {
                 return new CancelableThread(r);
             }
         };
-        mExecutor = Executors.newFixedThreadPool(10, threadFactory);
+        mExecutor = new ThreadPoolExecutor(4, 20,
+                3000, TimeUnit.MILLISECONDS,
+                new LinkedBlockingDeque<>(), threadFactory);
+        mWorkHandler.sendMessageDelayed(Message.obtain(mWorkHandler, 1), 5000);
+
     }
+
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -218,7 +223,7 @@ public class DownloadService extends Service {
 
     // 添加 删除 暂停 继续下载
     private void update(@Nullable Intent intent) {
-        if (Constants.DEBUG&&intent!=null) {
+        if (Constants.DEBUG && intent != null) {
             int status = 0;
             int id = 0;
             String uri = "";
@@ -274,8 +279,14 @@ public class DownloadService extends Service {
                 if (msg.obj instanceof Intent) {
                     update((Intent) msg.obj);
                 }
+            } else if (msg.what == 1) {
+                if (mExecutor.isIdle()) {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "没有下载任务,退出服务");
+                    stopSelf();
+                } else {
+                    mWorkHandler.sendMessageDelayed(Message.obtain(mWorkHandler, 1), 5000);
+                }
             }
-            super.handleMessage(msg);
         }
     }
 
