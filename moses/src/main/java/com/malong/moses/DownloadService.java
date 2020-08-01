@@ -28,9 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 
 // https://developer.android.com/training/testing/integration-testing/service-testing?hl=zh-cn
 // 单测
@@ -46,8 +44,8 @@ public class DownloadService extends Service {
     private HandlerThread mWorkThread;
     /** 工作线程Handler */
     private WorkHandler mWorkHandler;
-    /** 下载线程池 */
-    private ThreadPoolExecutor mExecutor;
+//    /** 下载线程池 */
+//    private ThreadPoolExecutor mExecutor;
     /** 任务集合 <下载id,下载任务> */
     private HashMap<Integer, FutureTask> mTaskMap = new HashMap<>();
     private HashMap<Integer, FutureTask> mPartialTaskMap = new HashMap<>();
@@ -72,9 +70,10 @@ public class DownloadService extends Service {
                 return new CancelableThread(r);
             }
         };
-        mExecutor = new ThreadPoolExecutor(4, 20,
-                3000, TimeUnit.MILLISECONDS,
-                new LinkedBlockingDeque<>(), threadFactory);
+//        mExecutor = new ThreadPoolExecutor(4, 20,
+//                3000, TimeUnit.MILLISECONDS,
+//                new LinkedBlockingDeque<>(), threadFactory);
+//        mExecutor.allowCoreThreadTimeOut(true);// 核心线程池可回收
         mWorkHandler.sendMessageDelayed(Message.obtain(mWorkHandler, 1), 5000);
 
     }
@@ -103,7 +102,7 @@ public class DownloadService extends Service {
                 task.cancel(true);
             }
         }
-        mExecutor.shutdownNow();
+//        mExecutor.shutdownNow();
         super.onDestroy();
     }
 
@@ -137,7 +136,11 @@ public class DownloadService extends Service {
                     Log.d(TAG, "启动call：uri=" +
                             Utils.generateDownloadUri(mContext, info.id).toString());
                 }
-                mExecutor.execute(futureTask);
+                if (MosesConfig.serial) {
+                    MosesExecutors.equeue(futureTask);// 串行下载
+                } else {
+                    MosesExecutors.execute(futureTask);
+                }
             }
         } else if (status == Request.STATUS_PAUSE) {
             // 停止
@@ -197,7 +200,7 @@ public class DownloadService extends Service {
                 BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_RUNNING, info);
                 FutureTask<BlockInfo> futureTask = new FutureTask<>(callable);
                 mPartialTaskMap.put(info.id, futureTask);
-                mExecutor.execute(futureTask);
+                MosesExecutors.execute(futureTask);
             }
         } else if (status == BlockInfo.STATUS_STOP) {
             // 停止分片任务,
@@ -280,7 +283,7 @@ public class DownloadService extends Service {
                     update((Intent) msg.obj);
                 }
             } else if (msg.what == 1) {
-                if (mExecutor.isIdle()) {
+                if (MosesExecutors.isIdle()) {
                     if (BuildConfig.DEBUG) Log.d(TAG, "没有下载任务,退出服务");
                     stopSelf();
                 } else {

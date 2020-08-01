@@ -12,7 +12,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -195,7 +194,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     /** 默认的拒绝处理器 */
     private static final RejectedExecutionHandler defaultHandler =
-            new java.util.concurrent.ThreadPoolExecutor.AbortPolicy();
+            new ThreadPoolExecutor.AbortPolicy();
 
     /**
      * Permission required for callers of shutdown and shutdownNow.
@@ -532,8 +531,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Package-protected for use by ScheduledThreadPoolExecutor.
      */
     final void reject(Runnable command) {
-        // TODO: 2020-07-29 需要重写 RejectedExecutionHandler
-//        handler.rejectedExecution(command, this);
+        handler.rejectedExecution(command, this);
     }
 
     /**
@@ -1748,7 +1746,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param r the runnable task requested to be executed
          * @param e the executor attempting to execute this task
          */
-        public void rejectedExecution(Runnable r, java.util.concurrent.ThreadPoolExecutor e) {
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
             if (!e.isShutdown()) {
                 r.run();
             }
@@ -1773,7 +1771,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param e the executor attempting to execute this task
          * @throws RejectedExecutionException always
          */
-        public void rejectedExecution(Runnable r, java.util.concurrent.ThreadPoolExecutor e) {
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
             throw new RejectedExecutionException("Task " + r.toString() +
                     " rejected from " +
                     e.toString());
@@ -1797,7 +1795,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param r the runnable task requested to be executed
          * @param e the executor attempting to execute this task
          */
-        public void rejectedExecution(Runnable r, java.util.concurrent.ThreadPoolExecutor e) {
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
         }
     }
 
@@ -1822,7 +1820,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param r the runnable task requested to be executed
          * @param e the executor attempting to execute this task
          */
-        public void rejectedExecution(Runnable r, java.util.concurrent.ThreadPoolExecutor e) {
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
             if (!e.isShutdown()) {
                 e.getQueue().poll();
                 e.execute(r);

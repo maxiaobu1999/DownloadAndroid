@@ -8,6 +8,9 @@ public class CancelableThread extends Thread {
         super(target);
 
     }
+    public CancelableThread(Runnable target, String name) {
+        super(target,name);
+    }
 
     @Override
     public void interrupt() {

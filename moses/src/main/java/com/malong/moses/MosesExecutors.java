@@ -5,10 +5,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -24,7 +22,7 @@ public class MosesExecutors {
         // 创建线程
         public Thread newThread(Runnable r) {
             // 2线程名称，线程数量自增
-            return new Thread(r, "AsyncTask #" + mCount.getAndIncrement());
+            return new CancelableThread(r, "MosesExecutors #" + mCount.getAndIncrement());
         }
     };
     // 备用线程池，当主线程池满了时才会创建。使用这个线程池执行拒绝策略。
@@ -51,15 +49,16 @@ public class MosesExecutors {
                 }
             };
     // 执行任务的线程池
-    public static final ExecutorService THREAD_POOL_EXECUTOR;
+    public static final ThreadPoolExecutor THREAD_POOL_EXECUTOR;
 
     // 静态代码块，类加载初始化
     static {
         // 核心1、最大20、超时3、时间单位秒、生产消费队列
         ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
                 CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS,
-                new SynchronousQueue<Runnable>(), sThreadFactory);
+                new SynchronousQueue<>(), sThreadFactory);
         threadPoolExecutor.setRejectedExecutionHandler(sRunOnSerialPolicy);// 设置拒绝策略
+        threadPoolExecutor.allowCoreThreadTimeOut(true);// 核心线程空闲超时会关闭
         THREAD_POOL_EXECUTOR = threadPoolExecutor;
     }
 
@@ -110,7 +109,8 @@ public class MosesExecutors {
 
     }
 
-    public static void excute(FutureTask<Request> futureTask) {
+    /** 并行执行 */
+    public static void execute(FutureTask<?> futureTask) {
         THREAD_POOL_EXECUTOR.execute(futureTask);
     }
 
@@ -124,7 +124,11 @@ public class MosesExecutors {
 //        futureTask.cancel(true);
 //    }
     // if true 都执行完
-    public static boolean checkIdel(FutureTask<Request> futureTask) {
-        return THREAD_POOL_EXECUTOR.isTerminated() && sBackupExecutor.isTerminated();
+    public static boolean isIdle() {
+        return THREAD_POOL_EXECUTOR.isIdle();
     }
+
+
+
+
 }
