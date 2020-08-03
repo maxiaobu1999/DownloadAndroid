@@ -80,7 +80,7 @@ public class ProviderHelper {
     }
 
     // 查询状态
-    public static int queryStutas(Context context, int id) {
+    public static int queryStatus(Context context, int id) {
         Cursor cursor = context.getContentResolver().query(Utils.generateDownloadUri(context, id),
                 new String[]{Constants.COLUMN_STATUS},
                 Constants._ID + "=?",
@@ -95,7 +95,7 @@ public class ProviderHelper {
     }
 
     // 查询状态
-    public static int queryStutas(Context context, Request info) {
+    public static int queryStatus(Context context, Request info) {
         int id = info.id;
         if (id <= 0) {
             // 没有设置id，表示需要根据内容查找对应的ID

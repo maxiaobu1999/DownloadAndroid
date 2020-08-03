@@ -37,7 +37,7 @@ public class DownloadService extends Service {
     @SuppressWarnings("PointlessBooleanExpression")
     private static boolean DEBUG = Constants.DEBUG & true;
 
-
+    public static final int TIME = 1000;
     private Context mContext;
     private boolean first = true;
     /** 工作线程 */
@@ -74,7 +74,7 @@ public class DownloadService extends Service {
 //                3000, TimeUnit.MILLISECONDS,
 //                new LinkedBlockingDeque<>(), threadFactory);
 //        mExecutor.allowCoreThreadTimeOut(true);// 核心线程池可回收
-        mWorkHandler.sendMessageDelayed(Message.obtain(mWorkHandler, 1), 5000);
+        mWorkHandler.sendMessageDelayed(Message.obtain(mWorkHandler, 1), TIME);
 
     }
 
@@ -265,7 +265,7 @@ public class DownloadService extends Service {
         first = false;
         // 首次启动 处理下一半的任务,running 2 pending
         int update = ProviderHelper.updateStatus(mContext,
-                Request.STATUS_PENDING, Request.STATUS_RUNNING);
+                Request.STATUS_FAIL, Request.STATUS_RUNNING);
         if (DEBUG) Log.d(TAG, "onFirstStart():有【" + update
                 + "】个STATUS_RUNNING变为STATUS_PENDING");
 
@@ -287,7 +287,7 @@ public class DownloadService extends Service {
                     if (BuildConfig.DEBUG) Log.d(TAG, "没有下载任务,退出服务");
                     stopSelf();
                 } else {
-                    mWorkHandler.sendMessageDelayed(Message.obtain(mWorkHandler, 1), 5000);
+                    mWorkHandler.sendMessageDelayed(Message.obtain(mWorkHandler, 1), TIME);
                 }
             }
         }

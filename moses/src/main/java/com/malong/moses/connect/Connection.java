@@ -15,6 +15,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
 
 public class Connection {
     public static final String TAG = "【Connection】";
@@ -37,22 +39,26 @@ public class Connection {
             Log.d(TAG, "地址：" + mInfo.download_url);
             connection = (HttpURLConnection) (download_url.openConnection());
             connection.setConnectTimeout(10 * 1000);// 设置连接超时时间
-            connection.setReadTimeout(10 * 1000);// 设置读取超时时间
+            connection.setReadTimeout(5 * 60 * 1000);// 设置读取超时时间
             // 设置请求参数，即具体的 HTTP 方法
             connection.setRequestMethod("GET");// 只需要响应体(用HEAD不好使，腾讯处理不了这个请求方式)
-            connection.setRequestProperty("Connection", "close");// 避免后续重新建立连接
-//            // 设置是否向 httpUrlConnection 输出，
-//            // 对于post请求，参数要放在 http 正文内，因此需要设为true。
-//            // 默认情况下是false;
-//            connection.setDoOutput(true);
-//            // 设置是否从 httpUrlConnection 读入，默认情况下是true;
-//            connection.setDoInput(true);
+            // fix 使用HttpClient时遇到的 java.net.SocketException: Socket closed异常.原因未知
+            connection.setDoInput(true);// 使用 URL 连接进行输入，默认情况下是true;
+            connection.setUseCaches(false);// 忽略缓存
+            connection.setRequestProperty("Connection", "Keep-Alive");// 维持长连接
+            connection.setRequestProperty("Content-type", "application/octet-stream");// 维持长连接
             connection.connect();
             // 检查响应码
             if (connection.getResponseCode() != 200/*HttpStatus.SC_OK*/
                     && connection.getResponseCode() != 206) {// 206大文件拆分状态码。腾讯云断点续传时的返回码
                 if (DEBUG) Log.e(TAG, "获取响应头失败,响应码=" + connection.getResponseCode()
                         + "，链接地址=" + mInfo.download_url);
+
+                Log.d(TAG, connection.getResponseMessage());
+                Map<String, List<String>> headerFields = connection.getHeaderFields();
+                for (Map.Entry<String, List<String>> map : headerFields.entrySet()) {
+                    Log.d(TAG, map.getKey() + "+++++" + map.getValue());
+                }
                 return null;
             }
 

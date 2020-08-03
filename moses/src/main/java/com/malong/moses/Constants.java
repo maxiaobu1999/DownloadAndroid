@@ -59,6 +59,10 @@ public class Constants {
     public static final String COLUMN_TOTAL_BYTES = "total_bytes";
     /** 当前下载的文件大小 BIGINT */
     public static final String COLUMN_CURRENT_BYTES = "current_bytes";
+    /** 进度阀值 */
+    public static final String COLUMN_MIN_PROGRESS_TIME = "min_progress_time";
+    /** 进度阀值 */
+    public static final String COLUMN_MIN_PROGRESS_STEP = "min_progress_step";
     /** 请求头 map2json TEXT */
     public static final String COLUMN_HEADER = "header";
     /** 下载速度 TEXT */
@@ -123,7 +127,10 @@ public class Constants {
     public static final String PARTIAL_DESTINATION_PATH = "destination_path";
     /** 文件的名称，没有起一个 TEXT 必须*/
     public static final String PARTIAL_FILE_NAME = "file_name";
-
+    /** 进度阀值 */
+    public static final String PARTIAL_MIN_PROGRESS_TIME = "min_progress_time";
+    /** 进度阀值 */
+    public static final String PARTIAL_MIN_PROGRESS_STEP = "min_progress_step";
 
 
 

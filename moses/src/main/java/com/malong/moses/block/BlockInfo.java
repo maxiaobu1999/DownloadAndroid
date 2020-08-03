@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.malong.moses.Constants;
+import com.malong.moses.MosesConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,6 @@ public class BlockInfo {
     public static final int STATUS_FAIL = 300;
     /** 下载被删除 */
     public static final int STATUS_CANCEL = 999;
-
 
 
     public int id;
@@ -53,7 +53,10 @@ public class BlockInfo {
     public String destination_path;
     /** 文件的名称，没有起一个 TEXT 必须 */
     public String fileName;
-
+    /** 进度阀值 */
+    public long min_progress_time= MosesConfig.MIN_PROGRESS_TIME;
+    /** 进度阀值 */
+    public long min_progress_step=MosesConfig.MIN_PROGRESS_STEP;
 
     @NonNull
     public static List<BlockInfo> readPartialInfos(Context context, @Nullable Cursor cursor) {
@@ -90,6 +93,8 @@ public class BlockInfo {
                 info.destination_path = cursor.getString(cursor.getColumnIndexOrThrow(Constants.PARTIAL_DESTINATION_PATH));
             if (cursor.getColumnIndex(Constants.PARTIAL_FILE_NAME) != -1)
                 info.fileName = cursor.getString(cursor.getColumnIndexOrThrow(Constants.PARTIAL_FILE_NAME));
+            info.min_progress_step = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.PARTIAL_MIN_PROGRESS_STEP));
+            info.min_progress_time = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.PARTIAL_MIN_PROGRESS_TIME));
 
             infoList.add(info);
         }
@@ -115,6 +120,14 @@ public class BlockInfo {
             values.put(Constants.PARTIAL_DESTINATION_URI, info.destination_uri);
         if (!TextUtils.isEmpty(info.destination_path))
             values.put(Constants.PARTIAL_DESTINATION_PATH, info.destination_path);
+        if (info.min_progress_time != 0) {
+            values.put(Constants.PARTIAL_MIN_PROGRESS_TIME, info.min_progress_time);
+        }
+        if (info.min_progress_step != 0) {
+            values.put(Constants.PARTIAL_MIN_PROGRESS_STEP, info.min_progress_step);
+        }
+
+
         values.put(Constants.PARTIAL_FILE_NAME, info.fileName);
         return values;
     }

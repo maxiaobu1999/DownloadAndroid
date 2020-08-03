@@ -43,12 +43,12 @@ public class DemoUtil {
 
     /** 外置缓存路径/不可用返回内置路径 */
     public static File getParentFile(@NonNull Context context) {
-        final File externalSaveDir = context.getExternalCacheDir();
-        if (externalSaveDir == null) {
+//        final File externalSaveDir = context.getExternalCacheDir();
+//        if (externalSaveDir == null) {
             return context.getCacheDir();
-        } else {
-            return externalSaveDir;
-        }
+//        } else {
+//            return externalSaveDir;
+//        }
     }
 
     public static void openFile(Context context, String file) {

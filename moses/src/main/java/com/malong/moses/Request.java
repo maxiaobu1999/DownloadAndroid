@@ -156,6 +156,10 @@ public class Request {
     public long total_bytes;
     /** 当前下载的文件大小 BIGINT */
     public long current_bytes;
+    /** 进度阀值 */
+    public long min_progress_time = MosesConfig.MIN_PROGRESS_TIME;
+    /** 进度阀值 */
+    public long min_progress_step = MosesConfig.MIN_PROGRESS_STEP;
     /** 下载数据的MIME类型 TEXT */
     public String mime_type;
 
@@ -206,6 +210,8 @@ public class Request {
                 info.total_bytes = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_TOTAL_BYTES));
             if (cursor.getColumnIndex(Constants.COLUMN_CURRENT_BYTES) != -1)
                 info.current_bytes = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_CURRENT_BYTES));
+            info.min_progress_step = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_MIN_PROGRESS_STEP));
+            info.min_progress_time = cursor.getLong(cursor.getColumnIndexOrThrow(Constants.COLUMN_MIN_PROGRESS_TIME));
 
             if (cursor.getColumnIndex(Constants.COLUMN_SEPARATE_NUM) != -1)
                 info.separate_num = cursor.getInt(cursor.getColumnIndexOrThrow(Constants.COLUMN_SEPARATE_NUM));
@@ -215,7 +221,7 @@ public class Request {
     }
 
 
-    public  ContentValues info2ContentValues() {
+    public ContentValues info2ContentValues() {
         Request info = this;
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_STATUS, info.status);
@@ -235,15 +241,17 @@ public class Request {
             values.put(Constants.COLUMN_MIME_TYPE, info.mime_type);
         if (!TextUtils.isEmpty(info.etag))
             values.put(Constants.COLUMN_ETAG, info.etag);
+        if (min_progress_time != 0) {
+            values.put(Constants.COLUMN_MIN_PROGRESS_TIME, info.min_progress_time);
+        }
+        if (min_progress_step != 0) {
+            values.put(Constants.COLUMN_MIN_PROGRESS_STEP, info.min_progress_step);
+        }
 
         values.put(Constants.COLUMN_SEPARATE_NUM, info.separate_num);
 
         return values;
     }
-
-
-
-
 
 
     public static class Builder {
@@ -282,6 +290,7 @@ public class Request {
         }
 
 
+        /** 指定下载地址 */
         public Builder setDownloadUrl(@NonNull String url) {
             if (TextUtils.isEmpty(url)) {
                 throw new RuntimeException("下载地址不能为空");
@@ -290,6 +299,7 @@ public class Request {
             return this;
         }
 
+        /** 设置文件路径 */
         public Builder setDescription_path(@NonNull String path) {
             if (TextUtils.isEmpty(path)) {
                 throw new RuntimeException("保存路径不能为空");
@@ -302,6 +312,7 @@ public class Request {
             return this;
         }
 
+        /** 设置文件uri */
         public Builder setDescription_uri(@NonNull Uri uri) {
             if (TextUtils.isEmpty(uri.toString())) {
                 throw new RuntimeException("保存Uri不能为空");
@@ -309,6 +320,8 @@ public class Request {
             mInfo.destination_uri = uri.toString();
             return this;
         }
+
+        /** 设置文件名 */
         public Builder setFileName(@NonNull String name) {
             if (TextUtils.isEmpty(name)) {
                 throw new RuntimeException("文件名不能为空");
@@ -322,11 +335,26 @@ public class Request {
             mInfo.method = method;
             return this;
         }
+
         // 设置分片数量
         public Builder setSeparate_num(int separate_num) {
             mInfo.separate_num = separate_num;
             return this;
         }
+
+        /** 设置进度通知的间隔阀值 */
+        public Builder setMin_progress_time(int min_progress_time) {
+            mInfo.min_progress_time = min_progress_time;
+            return this;
+        }
+
+        /** 设置进度通知的字节阀值 */
+        public Builder setMin_progress_step(int min_progress_step) {
+            mInfo.min_progress_step = min_progress_step;
+            return this;
+        }
+
+
     }
 
 }

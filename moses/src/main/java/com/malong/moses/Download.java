@@ -72,6 +72,11 @@ public class Download {
         if (DEBUG) {
             Log.d(TAG, "pauseDownload（）调用");
         }
+        int status = ProviderHelper.queryStatus(context, info);
+        if (status != Request.STATUS_RUNNING) {
+            return;
+        }
+
         ProviderHelper.updateStatus(context, Request.STATUS_PAUSE, info);
         // 变更分片状态
         List<BlockInfo> partialInfoList = BlockProviderHelper
@@ -92,10 +97,11 @@ public class Download {
 
 
     // 取消
-    public static int cancelDownload(Context context, Request info) {
+    public static int cancelDownload(Context context,@NonNull Request info) {
         int deleteNum;
         if (info.id < 0) {
             Request oldInfo = ProviderHelper.queryOldDownload(context, info);
+            if (oldInfo==null) return 0;
             deleteNum = ProviderHelper.delete(context, oldInfo);
         } else {
             deleteNum = ProviderHelper.delete(context, info);
@@ -123,7 +129,7 @@ public class Download {
 
     // 获取下载项的状态
     public static int getTaskStatus(Context context, Request info) {
-        return ProviderHelper.queryStutas(context, info);
+        return ProviderHelper.queryStatus(context, info);
     }
 
 //    /**

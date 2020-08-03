@@ -248,7 +248,7 @@ public class DownloadManagerTest {
         }
 
         // 被停止了
-        int status = ProviderHelper.queryStutas(mContext, info.id);
+        int status = ProviderHelper.queryStatus(mContext, info.id);
         Assert.assertEquals(Request.STATUS_PAUSE, status);
 
 
@@ -265,7 +265,7 @@ public class DownloadManagerTest {
         int delete = Download.getInstance().deleteDownload(mContext, info);
         Assert.assertEquals(1, delete);
 
-        int i = ProviderHelper.queryStutas(mContext, info.id);
+        int i = ProviderHelper.queryStatus(mContext, info.id);
         Assert.assertEquals(-1, i);
     }
 
@@ -324,7 +324,7 @@ public class DownloadManagerTest {
         }
 
         // 被停止了
-        int status = ProviderHelper.queryStutas(mContext, info.id);
+        int status = ProviderHelper.queryStatus(mContext, info.id);
         Assert.assertEquals(Request.STATUS_PAUSE, status);
         List<BlockInfo> partialInfos = BlockProviderHelper.queryPartialInfoList(mContext, info.id);
         for (BlockInfo partialInfo : partialInfos) {
@@ -356,7 +356,7 @@ public class DownloadManagerTest {
         // 文件不存在
         boolean existFile = FileUtils.checkFileExist(doneInfo.destination_path, doneInfo.fileName);
         Assert.assertFalse(existFile);
-        int i = ProviderHelper.queryStutas(mContext, info.id);
+        int i = ProviderHelper.queryStatus(mContext, info.id);
         Assert.assertEquals(-1, i);
     }
 

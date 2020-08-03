@@ -307,3 +307,9 @@ public interface Lock {
 ```
 
 双亲代理 图片加载框架
+
+
+
+case:只有running状态能stop，暂放在pauseDownload(Context context, Request info)
+
+Case:完善删除状态图

@@ -96,11 +96,11 @@ class SingleBlockActivity : BaseSampleActivity() {
     /** 配置下载任务信息 */
     private fun initTask() {
 //        val url = Constants.BASE_URL + Constants.IMAGE_NAME
-        val url =
-            "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
-        val filename = FileUtils.getFileNameFromUrl(url)
-//        val url = "https://cdn.llscdn.com/yy/files/xs8qmxn8-lls-LLS-5.8-800-20171207-111607.apk"
+//        val url =
+//            "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
+        val url = "https://cdn.llscdn.com/yy/files/xs8qmxn8-lls-LLS-5.8-800-20171207-111607.apk"
         val parentFile = DemoUtil.getParentFile(this)
+        val filename = FileUtils.getFileNameFromUrl(url)
         task = Request.Builder()
             .setDescription_path(parentFile.toString())
             .setFileName(filename!!)

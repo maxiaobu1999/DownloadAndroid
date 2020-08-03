@@ -21,5 +21,6 @@
         <domain includeSubdomains="true">imgsrc.baidu.com</domain>
 
         <domain includeSubdomains="true">downapp.baidu.com</domain>
+        <domain includeSubdomains="true">maqinglong-1253423006.cos.ap-beijing-1.myqcloud.com</domain>
     </domain-config>
 </network-security-config>

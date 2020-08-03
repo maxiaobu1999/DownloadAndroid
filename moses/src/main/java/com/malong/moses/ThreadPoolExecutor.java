@@ -1,5 +1,7 @@
 package com.malong.moses;
 
+import android.util.Log;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -24,13 +26,23 @@ import java.util.concurrent.locks.ReentrantLock;
  * 2、查询线程池当前是否执行完毕：闲置时关闭service
  */
 public class ThreadPoolExecutor extends AbstractExecutorService {
+    public static final String TAG = "【ThreadPoolExecutor】";
+    @SuppressWarnings("PointlessBooleanExpression")
+    private static boolean DEBUG = Constants.DEBUG & true;
     // add by me BEGIN
+
     /** 当前线程是否执行完毕 */
     public boolean isIdle() {
+        if (DEBUG)
+            Log.d(TAG, "isIdle()：workQueue.size()="
+                    + workQueue.size() + "；workers=" + workers.size());
         if (workQueue.size() > 0) {
             return false;
         }
         for (Worker worker : workers) {
+            if (DEBUG) Log.d(TAG, "worker.firstTask:" + worker.firstTask);
+            if (DEBUG) Log.d(TAG, "worker.curTask:" + worker.curTask);
+
             if (worker.firstTask != null || worker.curTask != null) {
                 return false;
             }
@@ -617,8 +629,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
             for (; ; ) {
                 int wc = workerCountOf(c);// 当前worker数量
-                if (wc >= CAPACITY ||
-                        wc >= (core ? corePoolSize : maximumPoolSize))
+                if (wc >= CAPACITY || wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
                 // worker数量+1
                 if (compareAndIncrementWorkerCount(c))
@@ -643,8 +654,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     int rs = runStateOf(ctl.get());
                     // 同样检测当rs>SHUTDOWN时直接拒绝减小Wc，同时Terminate，
                     // 如果为SHUTDOWN同时firstTask不为null的时候也要Terminate
-                    if (rs < SHUTDOWN ||
-                            (rs == SHUTDOWN && firstTask == null)) {
+                    if (rs < SHUTDOWN || (rs == SHUTDOWN && firstTask == null)) {
                         if (t.isAlive()) // precheck that t is startable
                             throw new IllegalThreadStateException();
                         workers.add(w);// 保存一下worker
@@ -881,10 +891,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 w.curTask = task;// add by me
                 w.lock();//先获取worker的独占锁，防止其他线程调用了shutdown方法。
                 // 如果线程池正在停止，确保线程是被中断的，如果没有则确保线程不被中断操作。
-                if ((runStateAtLeast(ctl.get(), STOP) ||
-                        (Thread.interrupted() &&
-                                runStateAtLeast(ctl.get(), STOP))) &&
-                        !wt.isInterrupted())
+                if ((runStateAtLeast(ctl.get(), STOP)
+                        || (Thread.interrupted() && runStateAtLeast(ctl.get(), STOP)))
+                        && !wt.isInterrupted())
                     wt.interrupt();
                 try {
                     //执行任务之前做一些操作，可进行自定义
@@ -893,26 +902,31 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     try {
                         task.run();// 运行任务在这里喽。
                     } catch (RuntimeException x) {
+                        x.printStackTrace();
                         thrown = x;
                         throw x;
                     } catch (Error x) {
+                        x.printStackTrace();
                         thrown = x;
                         throw x;
                     } catch (Throwable x) {
+                        x.printStackTrace();
                         thrown = x;
                         throw new Error(x);
                     } finally {
                         afterExecute(task, thrown);//线程执行后执行，可以实现标识Worker异常中断的功能，本类中未实现
                     }
                 } finally {
-                    task = null;// 运行过的task标null
+                    Log.d(TAG, "+++++++++");
                     w.curTask = null;// add by me
+                    task = null;// 运行过的task标null
                     w.completedTasks++;// 统计当前Worker完成了多少任务
                     w.unlock();// 独占锁释放
                 }
             }
             completedAbruptly = false;
         } finally {
+
             // 处理Worker的退出操作，执行清理工作。
             processWorkerExit(w, completedAbruptly);
         }

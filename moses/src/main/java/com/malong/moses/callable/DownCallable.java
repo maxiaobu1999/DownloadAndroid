@@ -6,8 +6,8 @@ import android.util.Log;
 
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
-import com.malong.moses.Request;
 import com.malong.moses.ProviderHelper;
+import com.malong.moses.Request;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
 import com.malong.moses.connect.ResponseInfo;
@@ -64,7 +64,6 @@ public class DownCallable implements Callable<Request> {
         ProviderHelper.updateDownloadInfoPortion(mContext, mInfo);// 持久化下载信息
 
 
-
         // TODO: 2020-07-21 适配URI
         // 删除掉过去下载的文件（eg：下一半的重新下载）
         File destFile = new File(mInfo.destination_path + mInfo.fileName);// 输出文件
@@ -92,6 +91,8 @@ public class DownCallable implements Callable<Request> {
             byte[] buf = new byte[defaultBufferSize];
             long size = 0;
             int len;
+            long mBytesNotified = 0;
+            long mTimeLastNotification = 0;
             while ((len = is.read(buf)) > 0) {
                 // 响应task.cancelDownload()
                 if (mThread.cancel) {
@@ -101,13 +102,23 @@ public class DownCallable implements Callable<Request> {
                 os.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
-                ProviderHelper.updateProcess(mContext, mInfo);
+                long now = System.currentTimeMillis();
+                if (mInfo.current_bytes - mBytesNotified
+                        > mInfo.min_progress_step
+                        && now - mTimeLastNotification
+                        > mInfo.min_progress_time) {
+                    mBytesNotified = mInfo.current_bytes;
+                    mTimeLastNotification = now;
+                    ProviderHelper.updateProcess(mContext, mInfo);
+                }
             }
             os.flush();
             // 下载完成
+            ProviderHelper.updateProcess(mContext, mInfo);
             mInfo.status = Request.STATUS_SUCCESS;
             ProviderHelper.onStatusChange(mContext, mInfo);
         } catch (InterruptedIOException e) {
+            e.printStackTrace();
             // task被取消,finally会执行
         } catch (Exception e) {
             mInfo.status = Request.STATUS_FAIL;
@@ -118,6 +129,7 @@ public class DownCallable implements Callable<Request> {
             connection.close();
             Closeables.closeSafely(os);
         }
+        if (DEBUG) Log.d(TAG, "call()执行结束");
         return mInfo;
     }
 

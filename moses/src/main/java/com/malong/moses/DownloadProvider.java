@@ -330,7 +330,8 @@ public final class DownloadProvider {
             bundle.putString(Constants.KEY_URI, Utils.generateDownloadUri(mContext, downloadId).toString());
             Utils.startDownloadService(mContext, bundle);
             Request info = infoList.get(0);
-            Uri destUri = Utils.getDownloadBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
+            Uri destUri = Utils.getDownloadBaseUri(mContext).buildUpon()
+                    .appendPath(String.valueOf(info.id))
                     .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(Request.STATUS_CANCEL))
                     .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
                     .fragment(Constants.KEY_STATUS_CHANGE).build();

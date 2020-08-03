@@ -71,6 +71,8 @@ public class DownSubCallable implements Callable<BlockInfo> {
             byte[] buf = new byte[defaultBufferSize];
             long size = mInfo.current_bytes;
             int len;
+            long mBytesNotified = 0;
+            long mTimeLastNotification = 0;
             while ((len = is.read(buf)) > 0) {
                 // 响应task。cancelDownload()
                 if (mThread.cancel) {
@@ -81,20 +83,28 @@ public class DownSubCallable implements Callable<BlockInfo> {
                 raf.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
-                if (DEBUG) Log.d(TAG, " mInfo.current_bytes="+ mInfo.current_bytes);
+                if (DEBUG) Log.d(TAG, " mInfo.current_bytes=" + mInfo.current_bytes);
 
-                // 这里引发的下载慢
-                BlockProviderHelper.updatePartialProcess(mContext, mInfo);
+                long now = System.currentTimeMillis();
+                if (mInfo.current_bytes - mBytesNotified
+                        > mInfo.min_progress_step
+                        && now - mTimeLastNotification
+                        > mInfo.min_progress_time) {
+                    mBytesNotified = mInfo.current_bytes;
+                    mTimeLastNotification = now;
+                    BlockProviderHelper.updatePartialProcess(mContext, mInfo);
+                }
             }
             // 下载完成
-            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_SUCCESS,mInfo);
+            BlockProviderHelper.updatePartialProcess(mContext, mInfo);
+            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_SUCCESS, mInfo);
         } catch (InterruptedIOException e) {
             // 下载被取消,finally会执行
         } catch (Exception e) {
             e.printStackTrace();
 //            mInfo.status = DownloadTask.STATUS_FAIL;
 //            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
-            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_FAIL,mInfo);
+            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_FAIL, mInfo);
         } finally {
             Closeables.closeSafely(is);
             connection.close();

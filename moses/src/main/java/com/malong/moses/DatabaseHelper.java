@@ -105,6 +105,8 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
                     + Constants.COLUMN_STATUS + " INTEGER, "
                     + Constants.COLUMN_TOTAL_BYTES + " BIGINT, "
                     + Constants.COLUMN_CURRENT_BYTES + " BIGINT, "
+                    + Constants.COLUMN_MIN_PROGRESS_STEP + " BIGINT, "
+                    + Constants.COLUMN_MIN_PROGRESS_TIME + " BIGINT, "
                     + Constants.COLUMN_HEADER + " TEXT, "
                     + Constants.COLUMN_SPEED + " TEXT, "
                     + Constants.COLUMN_ETAG + " TEXT, "
@@ -144,7 +146,8 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
                     + Constants.PARTIAL_DESTINATION_URI + " TEXT, "
                     + Constants.PARTIAL_DESTINATION_PATH + " TEXT, "
                     + Constants.PARTIAL_FILE_NAME + " TEXT, "
-
+                    + Constants.COLUMN_MIN_PROGRESS_STEP + " BIGINT, "
+                    + Constants.COLUMN_MIN_PROGRESS_TIME + " BIGINT, "
 
                     + Constants.PARTIAL_START_INDEX + " BIGINT, "
                     + Constants.PARTIAL_END_INDEX + " BIGINT);");

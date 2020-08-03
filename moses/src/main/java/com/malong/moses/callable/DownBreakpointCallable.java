@@ -6,8 +6,8 @@ import android.util.Log;
 
 import com.malong.moses.CancelableThread;
 import com.malong.moses.Constants;
-import com.malong.moses.Request;
 import com.malong.moses.ProviderHelper;
+import com.malong.moses.Request;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
 import com.malong.moses.connect.ResponseInfo;
@@ -57,7 +57,7 @@ public class DownBreakpointCallable implements Callable<Request> {
         }
         if (responseInfo.contentLength != 0) {
             mInfo.total_bytes = responseInfo.contentLength;
-        }else {
+        } else {
             if (DEBUG) Log.e(TAG,
                     "无法下载，响应头 Content-Length 获取不到文件size。下载地址：" + mInfo.download_url);
             ProviderHelper.updateStatus(mContext, Request.STATUS_FAIL, mInfo);
@@ -93,6 +93,8 @@ public class DownBreakpointCallable implements Callable<Request> {
             byte[] buf = new byte[defaultBufferSize];
             long size = mInfo.current_bytes;
             int len;
+            long mBytesNotified=0;
+            long mTimeLastNotification=0;
             while ((len = is.read(buf)) > 0) {
                 // 响应task。cancelDownload()
                 Log.d(TAG, "isInterrupted():" + mThread.cancel);
@@ -103,10 +105,19 @@ public class DownBreakpointCallable implements Callable<Request> {
                 os.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
-                ProviderHelper.updateProcess(mContext, mInfo);
+                long now = System.currentTimeMillis();
+                if (mInfo.current_bytes - mBytesNotified
+                        > mInfo.min_progress_step
+                        && now - mTimeLastNotification
+                        > mInfo.min_progress_time) {
+                    mBytesNotified = mInfo.current_bytes;
+                    mTimeLastNotification = now;
+                    ProviderHelper.updateProcess(mContext, mInfo);
+                }
             }
             os.flush();
             // 下载完成
+            ProviderHelper.updateProcess(mContext, mInfo);
             mInfo.status = Request.STATUS_SUCCESS;
             ProviderHelper.onStatusChange(mContext, mInfo);
         } catch (InterruptedIOException e) {
@@ -123,5 +134,6 @@ public class DownBreakpointCallable implements Callable<Request> {
         return mInfo;
 
     }
+
 
 }
