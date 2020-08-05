@@ -50,9 +50,7 @@ public class DownSubCallable implements Callable<BlockInfo> {
         httpInfo.end_index = mInfo.end_index;
         // 已经下载完的
         if (httpInfo.start_index >= httpInfo.end_index) {
-//            mInfo.status = DownloadTask.STATUS_SUCCESS;
-//            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
-            BlockProviderHelper.updatePartialStutas(mContext, BlockInfo.STATUS_SUCCESS, mInfo);
+            BlockProviderHelper.updatePartialStatus(mContext, BlockInfo.STATUS_SUCCESS, mInfo);
             return mInfo;
         }
 
@@ -60,7 +58,7 @@ public class DownSubCallable implements Callable<BlockInfo> {
         // 请求服务器，获取输入流
         InputStream is = connection.getInputStream();
         if (is == null) {
-            BlockProviderHelper.updatePartialStutas(mContext, BlockInfo.STATUS_FAIL, mInfo);
+            BlockProviderHelper.updatePartialStatus(mContext, BlockInfo.STATUS_FAIL, mInfo);
             return mInfo;
         }
         RandomAccessFile raf = null;
@@ -83,8 +81,7 @@ public class DownSubCallable implements Callable<BlockInfo> {
                 raf.write(buf, 0, len);
                 size += len;
                 mInfo.current_bytes = size;
-                if (DEBUG) Log.d(TAG, " mInfo.current_bytes=" + mInfo.current_bytes);
-
+//                if (DEBUG) Log.d(TAG, " mInfo.current_bytes=" + mInfo.current_bytes);
                 long now = System.currentTimeMillis();
                 if (mInfo.current_bytes - mBytesNotified
                         > mInfo.min_progress_step
@@ -97,14 +94,12 @@ public class DownSubCallable implements Callable<BlockInfo> {
             }
             // 下载完成
             BlockProviderHelper.updatePartialProcess(mContext, mInfo);
-            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_SUCCESS, mInfo);
+            BlockProviderHelper.updatePartialStatus(mContext, Request.STATUS_SUCCESS, mInfo);
         } catch (InterruptedIOException e) {
             // 下载被取消,finally会执行
         } catch (Exception e) {
             e.printStackTrace();
-//            mInfo.status = DownloadTask.STATUS_FAIL;
-//            PartialProviderHelper.onPartialStatusChange(mContext, mInfo);
-            BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_FAIL, mInfo);
+            BlockProviderHelper.updatePartialStatus(mContext, Request.STATUS_FAIL, mInfo);
         } finally {
             Closeables.closeSafely(is);
             connection.close();

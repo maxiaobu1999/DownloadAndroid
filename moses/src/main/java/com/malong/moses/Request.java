@@ -263,7 +263,7 @@ public class Request {
             mInfo.destination_uri = "";
             mInfo.destination_path = "";
 
-            mInfo.status = Request.STATUS_PENDING;
+            mInfo.status = Request.STATUS_NONE;
             mInfo.method = Request.METHOD_COMMON;
             mInfo.total_bytes = 0;
             mInfo.current_bytes = 0;

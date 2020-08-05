@@ -2,7 +2,9 @@ package com.malong.moses;
 
 public class Constants {
     public static final String BASE_URL = "https://maqinglong-1253423006.cos.ap-beijing-1.myqcloud.com/lib_download/";// mini_video/
-    public static final String TIK_NAME = "mda-jk8du50gv2jwae5r.mp4";// 诛仙小说 size：4557690
+    public static final String TIK_NAME = "mda-jk8du50gv2jwae5r.mp4";//
+    public static final String TIK_NAME2 = "mda-ji5vv1uph88b4nw8.mp4";//
+    public static final String TIK_NAME3 = "mda-ji8udezm9i3zvyh7.mp4";//
     public static final String IMAGE_NAME = "mda-jk8du50gv2jwae5r00000.jpg";// 图片 size：	77859
     public static final String ZHU_XIAN_NAME = "诛仙.txt";// 诛仙小说 size：4557690
     public static boolean DEBUG = true;

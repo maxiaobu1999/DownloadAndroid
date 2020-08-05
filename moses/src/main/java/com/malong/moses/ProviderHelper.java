@@ -131,7 +131,7 @@ public class ProviderHelper {
 
     // 更新状态
     public static int updateStatus(Context context, int oldStatus, int newStatus) {
-        if (DEBUG) Log.d(TAG, "更新状态updateStutas():" + ";状态" + oldStatus + "变为" + newStatus);
+        if (DEBUG) Log.d(TAG, "更新状态 updateStatus():" + "状态" + oldStatus + "变为" + newStatus);
         ContentValues values = new ContentValues();
         values.put(Constants.COLUMN_STATUS, oldStatus);
         return context.getContentResolver()

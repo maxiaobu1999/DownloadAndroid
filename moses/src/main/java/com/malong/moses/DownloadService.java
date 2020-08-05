@@ -133,8 +133,7 @@ public class DownloadService extends Service {
                 FutureTask<Request> futureTask = new FutureTask<>(callable);
                 mTaskMap.put(info.id, futureTask);
                 if (DEBUG) {
-                    Log.d(TAG, "启动call：uri=" +
-                            Utils.generateDownloadUri(mContext, info.id).toString());
+                    Log.d(TAG, "启动call：uri=" + Utils.generateDownloadUri(mContext, info.id).toString());
                 }
                 if (MosesConfig.serial) {
                     MosesExecutors.equeue(futureTask);// 串行下载
@@ -176,32 +175,16 @@ public class DownloadService extends Service {
         int id = bundle.getInt(Constants.KEY_ID, -1);
         BlockInfo info = BlockProviderHelper.queryPartialInfo(mContext, id);
         if (status == BlockInfo.STATUS_PENDING) {
-//            if (info == null) {// ID无效
-//
-//                return;
-//            }
             Callable<BlockInfo> callable = new DownSubCallable(mContext, info);
-//            if (info.method == DownloadInfo.METHOD_COMMON) {
-//                // 删除旧文件，重新下载
-//                callable = new DownloadCallable(mContext, info);
-//            } else if (info.method == DownloadInfo.METHOD_BREAKPOINT) {
-//                // 断点续传
-//                callable = new BreakpointCallable(mContext, info);
-//            } else if (info.method == DownloadInfo.METHOD_PARTIAL) {
-//                // 断点续传
-//                callable = new PartialCallable(mContext, info, mExecutor);
-//            }
-            if (callable != null) {
-                if (DEBUG) {
-                    Log.d(TAG, "开始下载任务：" +
-                            Utils.generatePartialBUri(mContext, info.id).toString());
-                }
-                // 状态变为正在下载
-                BlockProviderHelper.updatePartialStutas(mContext, Request.STATUS_RUNNING, info);
-                FutureTask<BlockInfo> futureTask = new FutureTask<>(callable);
-                mPartialTaskMap.put(info.id, futureTask);
-                MosesExecutors.execute(futureTask);
+            if (DEBUG) {
+                Log.d(TAG, "开始下载任务：" +
+                        Utils.generatePartialBUri(mContext, info.id).toString());
             }
+            // 状态变为正在下载
+            BlockProviderHelper.updatePartialStatus(mContext, Request.STATUS_RUNNING, info);
+            FutureTask<BlockInfo> futureTask = new FutureTask<>(callable);
+            mPartialTaskMap.put(info.id, futureTask);
+            MosesExecutors.execute(futureTask);
         } else if (status == BlockInfo.STATUS_STOP) {
             // 停止分片任务,
             BlockInfo partialInfo = BlockProviderHelper.queryPartialInfo(mContext, id);
@@ -263,12 +246,11 @@ public class DownloadService extends Service {
         if (!first) return;
         if (DEBUG) Log.d(TAG, " onFirstStart()执行");
         first = false;
-        // 首次启动 处理下一半的任务,running 2 pending
-        int update = ProviderHelper.updateStatus(mContext,
-                Request.STATUS_FAIL, Request.STATUS_RUNNING);
-        if (DEBUG) Log.d(TAG, "onFirstStart():有【" + update
-                + "】个STATUS_RUNNING变为STATUS_PENDING");
-
+//        // 首次启动 处理下一半的任务,running 2 pending
+//        int update = ProviderHelper.updateStatus(mContext,
+//                Request.STATUS_FAIL, Request.STATUS_RUNNING);
+//        if (DEBUG) Log.d(TAG, "onFirstStart():有【" + update
+//                + "】个STATUS_RUNNING变为STATUS_PENDING");
     }
 
     class WorkHandler extends Handler {

@@ -9,6 +9,7 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import com.malong.moses.Constants
 import com.malong.moses.Download
 import com.malong.moses.Request
 import com.malong.moses.listener.DownloadListener
@@ -54,7 +55,7 @@ class SingleBreakpointActivity : BaseSampleActivity() {
         progressBar = findViewById<View>(R.id.progressBar) as ProgressBar
         actionView = findViewById(R.id.actionView)
         actionTv = findViewById<View>(R.id.actionTv) as TextView
-        openBtn = findViewById<Button>(R.id.openBtn)
+        openBtn = findViewById(R.id.openBtn)
 
         init()
     }
@@ -75,10 +76,7 @@ class SingleBreakpointActivity : BaseSampleActivity() {
 
     /** 配置下载任务信息 */
     private fun initTask() {
-//        val url = Constants.BASE_URL + Constants.IMAGE_NAME
-//        val url =
-//            "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
-        val url = "https://cdn.llscdn.com/yy/files/xs8qmxn8-lls-LLS-5.8-800-20171207-111607.apk"
+        val url = Constants.BASE_URL + Constants.TIK_NAME2
         val filename = FileUtils.getFileNameFromUrl(url)
         val parentFile = DemoUtil.getParentFile(this)
         task = Request.Builder()
@@ -86,12 +84,16 @@ class SingleBreakpointActivity : BaseSampleActivity() {
             .setFileName(filename!!)
             .setDownloadUrl(url)
             .setMethod(Request.METHOD_BREAKPOINT)
+            .setMin_progress_time(12)// 设置进度通知间隔，控制下载速度
             .build()
     }
 
     /** 获取该任务之前的下载信息 */
     private fun initStatus() {
         task = Download.queryDownloadInfo(mActivity, task)// 若之前下载过，会更新task信息
+        if (task?.id != 0) {
+            mListener.register(mActivity, task!!.id)
+        }
         DemoUtil.calcProgressToView(
             progressBar,
             task!!.current_bytes,
@@ -125,10 +127,10 @@ class SingleBreakpointActivity : BaseSampleActivity() {
                     Request.STATUS_SUCCESS -> {
                         // 下载完成 to 删除
                         Download.deleteDownload(mActivity, task)
-                        //                    mListener.unregister()
                     }
                     else -> {
                         // else to 下载
+                        initTask()
                         val downloadId = Download.doDownload(mActivity, task)
                         task = Download.queryDownloadInfo(mActivity, downloadId)
                         mListener.register(mActivity, task!!.id)

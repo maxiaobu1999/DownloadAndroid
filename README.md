@@ -313,3 +313,5 @@ public interface Lock {
 case:只有running状态能stop，暂放在pauseDownload(Context context, Request info)
 
 Case:完善删除状态图
+
+case：同一个下载对象，使用不同下载方式下载。

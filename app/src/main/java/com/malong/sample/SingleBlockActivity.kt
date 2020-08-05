@@ -13,8 +13,8 @@ import androidx.core.util.set
 import com.malong.moses.Constants
 import com.malong.moses.Download
 import com.malong.moses.Request
-import com.malong.moses.listener.BlockListener
 import com.malong.moses.block.BlockInfo
+import com.malong.moses.listener.BlockListener
 import com.malong.moses.utils.FileUtils
 import com.malong.moses.utils.SpeedCalculator
 import com.malong.sample.base.BaseSampleActivity
@@ -24,16 +24,12 @@ import com.malong.sample.util.DemoUtil
 class SingleBlockActivity : BaseSampleActivity() {
     companion object {
         @Suppress("unused")
-        private const val TAG = "【SinglePartialActivity】"
+        private const val TAG = "【SingleBlockActivity】"
         private const val BLOCK_NUM = 5
-
     }
 
-    private var task: Request? = null
-
-    //    /** 分片数据 */
-//    private var partialList: List<PartialInfo>? = null
-//    private var observerList: List<DownloadContentObserver>? = null
+    private var mRequest: Request? = null
+    private var mBlockList: ArrayList<BlockInfo?> = ArrayList(BLOCK_NUM)
     private var mActivity: Activity? = null
 
     /** 计算下载速度 */
@@ -41,9 +37,6 @@ class SingleBlockActivity : BaseSampleActivity() {
 
     /** 总下载信息 */
     private var totalInfoTv: TextView? = null
-
-//    /** 展示下载的按钮文字 下面的*/
-//    private var actionTv: TextView? = null
 
     /** 下载按钮*/
     private var downloadActionView: View? = null
@@ -76,7 +69,20 @@ class SingleBlockActivity : BaseSampleActivity() {
         deleteActionView = findViewById(R.id.deleteActionView)
         openActionTv = findViewById(R.id.openActionTv)
 
-        init()
+        val request = buildRequest()
+        // 获取该任务之前的下载信息
+        mRequest = Download.queryDownloadInfo(mActivity, request)// 若之前下载过，会更新task信息
+        updateHost()
+
+        // 查询分片信息
+        val partialList = Download.queryPartialInfoList(mActivity, mRequest!!.id)
+        for (item in partialList) {
+            mBlockList.add(item)
+            updatePartial(item.num, item.status, item.current_bytes, item.total_bytes)
+        }
+
+        initAction()
+
     }
 
     override fun titleRes(): Int = R.string.single_partial_download_title
@@ -84,76 +90,79 @@ class SingleBlockActivity : BaseSampleActivity() {
     override fun onDestroy() {
         super.onDestroy()
         mListener.unregister()
-        Download.pauseDownload(mActivity, task)
-    }
-
-    private fun init() {
-        initTask()
-        initStatus()
-        initAction()
+        Download.pauseDownload(mActivity, mRequest)
     }
 
     /** 配置下载任务信息 */
-    private fun initTask() {
-//        val url = Constants.BASE_URL + Constants.IMAGE_NAME
-//        val url =
-//            "http://downapp.baidu.com/baidusearch/AndroidPhone/11.25.0.11/1/757p/20200712134622/baidusearch_AndroidPhone_11-25-0-11_757p.apk?responseContentDisposition=attachment%3Bfilename%3D%22baidusearch_AndroidPhone_757p.apk%22&responseContentType=application%2Fvnd.android.package-archive&request_id=1595472387_5127736889&type=static"
-        val url = "https://cdn.llscdn.com/yy/files/xs8qmxn8-lls-LLS-5.8-800-20171207-111607.apk"
+    private fun buildRequest(): Request {
+        val url = Constants.BASE_URL + Constants.TIK_NAME3
         val parentFile = DemoUtil.getParentFile(this)
         val filename = FileUtils.getFileNameFromUrl(url)
-        task = Request.Builder()
+        return Request.Builder()
             .setDescription_path(parentFile.toString())
             .setFileName(filename!!)
             .setDownloadUrl(url)
             .setMethod(Request.METHOD_PARTIAL)
             .setSeparate_num(BLOCK_NUM)
+            .setMin_progress_time(70)// 设置进度通知间隔，控制下载速度
             .build()
     }
 
+    /** 上次的进度 */
+    var preProcess: Long = 0
 
-    /** 获取该任务之前的下载信息 */
-    private fun initStatus() {
-        task = Download.queryDownloadInfo(mActivity, task)// 若之前下载过，会更新task信息
-        // 显示当前的下载进度
-        DemoUtil.calcProgressToView(progressBar, task!!.current_bytes, task!!.total_bytes)
-        val assembleTotalContent =
-            assembleTotalContent(task!!.status, task!!.current_bytes, task!!.total_bytes)
-        totalInfoTv?.text = assembleTotalContent// 显示当前的下载状态
-
-        // 查询分片信息
-        val partialList = Download.queryPartialInfoList(mActivity, task!!.id)
-        for (item in partialList) {
-            updatePartial(item.num, item.current_bytes, item.total_bytes, item.status)
+    /** 刷新总进度显示内容 */
+    private fun updateHost() {
+        // 进度条
+        val percent: Float = mRequest!!.current_bytes * 1f / mRequest!!.total_bytes
+        progressBar!!.progress = (percent * progressBar!!.max).toInt()
+        if (mRequest!!.status == Request.STATUS_SUCCESS) {
+            progressBar!!.progress = (progressBar!!.max)
         }
+        // 拼接文案
+        val curProcess: String = SpeedCalculator.humanReadableBytes(mRequest!!.current_bytes, false)
+        val totalProcess: String = SpeedCalculator.humanReadableBytes(mRequest!!.total_bytes, false)
+        val speed: String = mSpeedCalculator.speed()
+        var progressStatusWithSpeed = "$curProcess / $totalProcess（$speed）"
+        progressStatusWithSpeed =
+            "总状态:${convertStatus(mRequest!!.status)}。进度=$progressStatusWithSpeed"
+        totalInfoTv?.text = progressStatusWithSpeed
     }
+
 
     /** 配置点击事件 */
     private fun initAction() {
         // 下载
         downloadActionView?.setOnClickListener {
             // let：表示 task 不为null的条件下，才会去执行let函数体.it 指向 task
-            task?.let { it ->
+            mRequest?.let {
                 val downloadId = Download.doDownload(mActivity, it)
-                task = Download.queryDownloadInfo(mActivity, downloadId)
-                mListener.register(mActivity, task!!.id)// 主监听
+                mRequest!!.id = downloadId
+                mListener.register(mActivity, downloadId)// 主监听
             }
         }
+        // 暂停
         pauseActionView?.setOnClickListener {
-            task?.let {
-                Download.pauseDownload(mActivity, task)
+            mRequest?.let {
+                Download.pauseDownload(mActivity, mRequest)
             }
         }
+        // 删除
         deleteActionView?.setOnClickListener {
-            task?.let {
-                Download.deleteDownload(mActivity, task)
+            mRequest?.let {
+                mListener.unregister()
+                Download.deleteDownload(mActivity, mRequest)
+                mRequest = buildRequest()
+                mRequest!!.status = Request.STATUS_CANCEL
+                updateHost()
                 for (i in 0 until BLOCK_NUM) {
-                    updatePartial(i, 0, 0, BlockInfo.STATUS_CANCEL)
+                    updatePartial(i, BlockInfo.STATUS_CANCEL, 0, 0)
                 }
-
             }
         }
+        // 打开下载文件
         openActionTv?.setOnClickListener {
-            task?.let {
+            mRequest?.let {
                 if (it.status == Request.STATUS_SUCCESS) {
                     DemoUtil.openFile(mActivity!!, it.destination_path + it.fileName)
                 } else {
@@ -161,14 +170,27 @@ class SingleBlockActivity : BaseSampleActivity() {
                 }
             }
         }
-
-
     }
 
 
-    private fun updatePartial(index: Int, progress: Long?, length: Long?, status: Int?) {
-        val progressBarId =
-            resources.getIdentifier("progressBar" + (index + 1), "id", mActivity!!.packageName)
+    /** 刷新分片进度显示内容 */
+    private fun updatePartial(
+        index: Int,
+        status: Int?,
+        progress: Long?,
+        length: Long?
+    ) {
+        if (mBlockList.size < index + 1) mBlockList.add(index, BlockInfo())
+        val blockInfo: BlockInfo = mBlockList[index]!!
+        if (status != null) blockInfo.status = status
+        if (progress != null) blockInfo.current_bytes = progress
+        if (length != null) blockInfo.total_bytes = length
+
+
+        val progressBarId = resources.getIdentifier(
+            "progressBar" + (index + 1),
+            "id", mActivity!!.packageName
+        )
         val pdId =
             resources.getIdentifier(
                 "pb" + (index + 1) + "_info_tv",
@@ -189,54 +211,31 @@ class SingleBlockActivity : BaseSampleActivity() {
             blockPreProgressList[index] = 0
         }
         // 进度变化
-        if (progress != null && length != null) {
-            // 计算速度
-            calculator.downloading(progress - blockPreProgressList[index])
-            // 显示当前分片的下载进度
-            DemoUtil.calcProgressToView(partialProgressBar, progress, length)
+        // 计算速度
+        calculator.downloading(blockInfo.current_bytes - blockPreProgressList[index])
+        // 显示当前分片的下载进度
+        DemoUtil.calcProgressToView(
+            partialProgressBar,
+            blockInfo.current_bytes,
+            blockInfo.total_bytes
+        )
+        // 记录
+        blockPreProgressList[index] = blockInfo.current_bytes
+        blockPreLengthList[index] = blockInfo.total_bytes
 
-            // 记录
-            blockPreProgressList[index] = progress
-            blockPreLengthList[index] = length
+        // 状态变化
+        blockPreStatusList[index] = blockInfo.status
 
-        }
-        if (status != null) {
-            // 状态变化
-            blockPreStatusList[index] = status
-        }
-
-        val curStatus = blockPreStatusList[index]
-        val curProgress = blockPreProgressList[index]
-        val curLength = blockPreLengthList[index]
         val speed = blockSpeedCalculatorList[index]!!.speed()
-
-
         // 显示当前分片的下载信息
-        val content = "Task$index: " +
-                assemblePartialContent(curStatus, speed, curProgress, curLength)
+        val curProcess: String = SpeedCalculator.humanReadableBytes(blockInfo.current_bytes, false)
+        val totalProcess: String = SpeedCalculator.humanReadableBytes(blockInfo.total_bytes, false)
+        val progressStatusWithSpeed = "$curProcess / $totalProcess（$speed）"
+        val content = "Task" + index + ": " +
+                "状态=${convertStatus(blockInfo.status)}。进度=$progressStatusWithSpeed"
         pdTv.text = content
 
 
-    }
-
-    private fun assemblePartialContent(
-        status: Int,
-        speed: String?,
-        current_bytes: Long,
-        total_bytes: Long
-    ): String {
-        val curProcess: String = SpeedCalculator.humanReadableBytes(current_bytes, false)
-        val totalProcess: String = SpeedCalculator.humanReadableBytes(total_bytes, false)
-        val progressStatusWithSpeed = "$curProcess / $totalProcess（$speed）"
-        return "状态=${convertStatus(status)}。进度=$progressStatusWithSpeed"
-    }
-
-    private fun assembleTotalContent(status: Int, current_bytes: Long, total_bytes: Long): String {
-        val curProcess: String = SpeedCalculator.humanReadableBytes(current_bytes, false)
-        val totalProcess: String = SpeedCalculator.humanReadableBytes(total_bytes, false)
-        val speed: String = mSpeedCalculator.speed()
-        val progressStatusWithSpeed = "$curProcess / $totalProcess（$speed）"
-        return "总状态:${convertStatus(task!!.status)}。进度=$progressStatusWithSpeed"
     }
 
     /** 下载状态监听 */
@@ -244,34 +243,34 @@ class SingleBlockActivity : BaseSampleActivity() {
         /** 状态变更监听 */
         override fun onStatusChange(status: Int) {
             Log.d(SingleBlockActivity.TAG, "status=$status")
-            task?.status = status
+            mRequest!!.status = status
+            updateHost()
         }
 
         /** 进度变更监听 */
         override fun onProgress(cur: Long, length: Long) {
             Log.d(SingleBlockActivity.TAG, "cur=$cur length=$length")
-            mSpeedCalculator.downloading(cur - preProcess)
-            preProcess = cur
-            val percent: Float = cur * 1f / length
-            progressBar!!.progress = (percent * progressBar!!.max).toInt()
-            val progressStatusWithSpeed = assembleTotalContent(task!!.status, cur, length)
-//                "下载任务：$status。$curProcess / $totalProcess（$speed）"
-            totalInfoTv?.text = progressStatusWithSpeed
+            mRequest!!.current_bytes = cur
+            mRequest!!.total_bytes = length
+            // 速度
+            mSpeedCalculator.downloading(mRequest!!.current_bytes - preProcess)
+            preProcess = mRequest!!.current_bytes
+
+            updateHost()
         }
 
         override fun onBlockStatusChange(index: Int, status: Int) {
             super.onBlockStatusChange(index, status)
-            Log.d(SingleBlockActivity.TAG, "onBlockStatusChange：status=$status")
-            updatePartial(index, null, null, status)
+            Log.d(SingleBlockActivity.TAG, "onBlockStatusChange：index=$index;status=$status")
+            updatePartial(index, status, null, null)
         }
 
-        var preProcess: Long = 0
 
         /** 分片进度变更监听 */
         override fun onBlockProcessChange(index: Int, progress: Long, length: Long) {
             super.onBlockProcessChange(index, progress, length)
             Log.d(SingleBlockActivity.TAG, "onBlockProcessChange：index=$index；progress=$progress")
-            updatePartial(index, progress, length, null)
+            updatePartial(index, null, progress, length)
         }
     }
 
@@ -284,6 +283,7 @@ class SingleBlockActivity : BaseSampleActivity() {
             Request.STATUS_PAUSE -> return "暂停中"
             Request.STATUS_FAIL -> return "下载失败"
             Request.STATUS_CANCEL -> return "删除完成"
+            Request.STATUS_NONE -> return "没有下载过"
         }
         return status.toString()
     }

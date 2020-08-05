@@ -212,17 +212,17 @@ public final class DownloadProvider {
                     }
                     int curStatus = (int) values.get(Constants.COLUMN_STATUS);
 //                    if (info.status != curStatus) {// 保证状态发生改变
-                        // 状态发生改变通知 service
-                        Bundle bundle = new Bundle();
-                        bundle.putInt(Constants.KEY_ID, info.id);
-                        bundle.putInt(Constants.KEY_STATUS, curStatus);
-                        bundle.putString(Constants.KEY_URI,
-                                Utils.generateDownloadUri(mContext, info.id).toString());
-                        Utils.startDownloadService(mContext, bundle);
-                        destUri = Utils.getDownloadBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
-                                .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(curStatus))
-                                .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
-                                .fragment(Constants.KEY_STATUS_CHANGE).build();
+                    // 状态发生改变通知 service
+                    Bundle bundle = new Bundle();
+                    bundle.putInt(Constants.KEY_ID, info.id);
+                    bundle.putInt(Constants.KEY_STATUS, curStatus);
+                    bundle.putString(Constants.KEY_URI,
+                            Utils.generateDownloadUri(mContext, info.id).toString());
+                    Utils.startDownloadService(mContext, bundle);
+                    destUri = Utils.getDownloadBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
+                            .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(curStatus))
+                            .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
+                            .fragment(Constants.KEY_STATUS_CHANGE).build();
 //                    }
                 } else if (values.containsKey(Constants.COLUMN_CURRENT_BYTES)) {
                     //  2、下载进度发生改变
@@ -238,7 +238,9 @@ public final class DownloadProvider {
             }
 
             return update;
-        } else if (URI_MATCHER.match(uri) == URI_MATCHER_PARTIAL) {
+        }
+//        else
+        if (URI_MATCHER.match(uri) == URI_MATCHER_PARTIAL) {
             // 分片
             // 先查出受影响的条目
             Cursor cursor = mDb.query(Constants.DB_PARTIAL_TABLE,
@@ -262,17 +264,18 @@ public final class DownloadProvider {
                     int curStatus = (int) values.get(Constants.PARTIAL_STATUS);
                     if (info.status != curStatus) {// 保证状态发生改变
                         // 状态发生改变通知 service
-                        Bundle bundle = new Bundle();
-                        bundle.putInt(Constants.KEY_ID, info.id);
-                        bundle.putInt(Constants.KEY_STATUS, curStatus);
-                        bundle.putString(Constants.KEY_URI,
-                                Utils.generatePartialBUri(mContext, info.id).toString());
-                        Utils.startDownloadService(mContext, bundle);
-                        destUri = Utils.getPartialBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
-                                .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
-                                .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(curStatus))
-                                .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
-                                .fragment(Constants.KEY_BLOCK_STATUS_CHANGE).build();
+//                        Bundle bundle = new Bundle();
+//                        bundle.putInt(Constants.KEY_ID, info.id);
+//                        bundle.putInt(Constants.KEY_STATUS, curStatus);
+//                        bundle.putString(Constants.KEY_URI,
+//                                Utils.generatePartialBUri(mContext, info.id).toString());
+//                        Utils.startDownloadService(mContext, bundle);
+
+//                        destUri = Utils.getPartialBaseUri(mContext).buildUpon().appendPath(String.valueOf(info.id))
+//                                .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
+//                                .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(curStatus))
+//                                .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
+//                                .fragment(Constants.KEY_BLOCK_STATUS_CHANGE).build();
                     }
                 } else if (values.containsKey(Constants.PARTIAL_CURRENT_BYTES)) {
 //                    //  2、下载进度发生改变
@@ -316,13 +319,6 @@ public final class DownloadProvider {
                 // 一条没删成功，失败了
                 return 0;// 别通知CO了
             }
-//        // 忽略删除量< 应删量
-//        for (Integer _id : list) {
-//            Uri affectedUri = Utils.generateDownloadUri(mContext, _id);
-//            // 通知contentObserver
-//            mContext.getContentResolver().notifyChange(affectedUri, null);
-//        }
-
             int downloadId = Integer.parseInt(selectionArgs[0]);
             Bundle bundle = new Bundle();
             bundle.putInt(Constants.KEY_ID, downloadId);
@@ -330,12 +326,14 @@ public final class DownloadProvider {
             bundle.putString(Constants.KEY_URI, Utils.generateDownloadUri(mContext, downloadId).toString());
             Utils.startDownloadService(mContext, bundle);
             Request info = infoList.get(0);
+            // 状态
             Uri destUri = Utils.getDownloadBaseUri(mContext).buildUpon()
                     .appendPath(String.valueOf(info.id))
                     .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(Request.STATUS_CANCEL))
                     .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
                     .fragment(Constants.KEY_STATUS_CHANGE).build();
             mContext.getContentResolver().notifyChange(destUri, null);
+            // 进度，删了进度变成0，需要触发监听
             Uri processUri = Utils.getDownloadBaseUri(mContext).buildUpon()
                     .appendPath(String.valueOf(info.id))
                     .appendQueryParameter(Constants.KEY_LENGTH, String.valueOf(info.total_bytes))

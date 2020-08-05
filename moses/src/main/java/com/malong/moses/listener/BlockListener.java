@@ -12,9 +12,9 @@ import com.malong.moses.Request;
 import com.malong.moses.utils.Utils;
 
 public class BlockListener implements Listener {
-    public static final String TAG = "【BaseListener】";
+    public static final String TAG = "【BlockListener】";
     @SuppressWarnings("PointlessBooleanExpression")
-    private static boolean DEBUG = Constants.DEBUG & false;
+    private static boolean DEBUG = Constants.DEBUG & true;
     Context mContext;
     private ContentObserver mObserver;
 //    private List<ContentObserver> mBlockObserverList = new ArrayList<>(5);
@@ -51,7 +51,7 @@ public class BlockListener implements Listener {
         @Override
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
-            if (DEBUG) Log.d(TAG, "onChange():" + uri.toString());
+//            if (DEBUG) Log.d(TAG, "onChange():" + uri.toString());
             if (Constants.KEY_STATUS_CHANGE.equals(uri.getFragment())) {
                 // 状态改变
                 try {
@@ -60,7 +60,7 @@ public class BlockListener implements Listener {
                     onStatusChange(status);
                     if (status != mLastState) {
                         if (DEBUG) {
-                            Log.d(TAG, "状态发生改变：当前状态=" + status);
+                            Log.d(TAG, "onChange状态发生改变：当前状态=" + status);
                         }
                         mLastState = status;
                         if (status == Request.STATUS_RUNNING) {
@@ -101,9 +101,9 @@ public class BlockListener implements Listener {
                         @SuppressWarnings("ConstantConditions")
                         long current_bytes = Long.parseLong(
                                 uri.getQueryParameter(Constants.KEY_PROCESS));
-                        if (DEBUG) {
-                            Log.d(TAG, index + "分片进度改变=" + current_bytes);
-                        }
+//                        if (DEBUG) {
+//                            Log.d(TAG, index + "分片进度改变=" + current_bytes);
+//                        }
                         @SuppressWarnings("ConstantConditions")
                         long length = Long.parseLong(
                                 uri.getQueryParameter(Constants.KEY_LENGTH));

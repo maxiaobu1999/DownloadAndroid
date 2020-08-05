@@ -17,7 +17,8 @@ import java.util.List;
 /** 分片实体类 */
 public class BlockInfo {
 
-
+    /** 啥记录没有 */
+    public static final int STATUS_NONE = 0;
     /** 过去没有开始下载 */
     public static final int STATUS_PENDING = 100;
     /** 正在下载 */

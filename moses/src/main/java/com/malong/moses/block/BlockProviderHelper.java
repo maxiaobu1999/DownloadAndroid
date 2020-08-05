@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -67,36 +68,47 @@ public class BlockProviderHelper {
         return infoList;
     }
 
-//    // 状态改变
-//    public static int onPartialStatusChange(Context context, PartialInfo info) {
-//        Uri uri = Utils.generatePartialBUri(context, info.id);
-//        ContentValues values = new ContentValues();
-//        values.put(Constants.COLUMN_STATUS, info.status);
-//        int update = context.getContentResolver().update(uri,
-//                values,
-//                Constants._ID + "=?",
-//                new String[]{String.valueOf(info.id)}
-//        );
-////        if (update > 0) {
-////            context.getContentResolver().notifyChange(uri, null);
-////        }
-//        return update;
-//    }
 
     // 更新状态
-    public static int updatePartialStutas(Context context, int status, BlockInfo info) {
-        if (DEBUG) Log.d(TAG, "ID:" + info.id + ";状态" + info.status + "变为" + status);
-//        // success 2 pauseDownload 忽略
-//        if (info.status == PartialInfo.STATUS_SUCCESS && status == PartialInfo.STATUS_PAUSE) {
-//            return 0 ;
-//        }
+    public static int updatePartialStatus(Context context, int status, BlockInfo info) {
+        if (DEBUG)
+            Log.d(TAG, "updatePartialStatus();ID:" + info.id +
+                    ";状态" + info.status + "变为" + status);
 
         Uri uri = Utils.generatePartialBUri(context, info.id);
         info.status = status;
         ContentValues values = new ContentValues();
         values.put(Constants.PARTIAL_STATUS, info.status);
-        return context.getContentResolver().update(uri, values, Constants._ID + "=?"
+        int update = context.getContentResolver().update(uri, values, Constants._ID + "=?"
                 , new String[]{String.valueOf(info.id)});
+        if (update == 0) {
+            if (DEBUG) Log.d(TAG, "updatePartialStatus();update == 0更新失败");
+        }
+
+        // 状态发生改变通知 service
+        Bundle bundle = new Bundle();
+        bundle.putInt(Constants.KEY_ID, info.id);
+        bundle.putInt(Constants.KEY_STATUS, status);
+        bundle.putString(Constants.KEY_URI,
+                Utils.generatePartialBUri(context, info.id).toString());
+        Utils.startDownloadService(context, bundle);
+        // 通知host
+        Uri blockUri = Utils.getPartialBaseUri(context).buildUpon()
+                .appendPath(String.valueOf(info.id))
+//                .appendQueryParameter(Constants.KEY_ID, String.valueOf(info.id))
+                .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(status))
+                .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
+                .fragment(Constants.KEY_BLOCK_STATUS_CHANGE).build();
+        context.getContentResolver().notifyChange(blockUri, null);
+        // 通知host的监听
+        Uri hostUri = Utils.getDownloadBaseUri(context).buildUpon()
+                .appendPath(String.valueOf(info.download_id))
+                .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(status))
+                .appendQueryParameter(Constants.KEY_PARTIAL_NUM, String.valueOf(info.num))
+                .fragment(Constants.KEY_BLOCK_STATUS_CHANGE).build();
+        context.getContentResolver().notifyChange(hostUri, null);
+        Log.d(TAG, "通知host的监听"+hostUri.toString());
+        return update;
     }
 
     /** 修改分片进度 */
@@ -116,8 +128,6 @@ public class BlockProviderHelper {
                 .appendQueryParameter(Constants.KEY_LENGTH, String.valueOf(info.total_bytes))
                 .fragment(Constants.KEY_BLOCK_PROCESS_CHANGE).build();
         context.getContentResolver().notifyChange(destUri, null);
-
-
     }
 
 

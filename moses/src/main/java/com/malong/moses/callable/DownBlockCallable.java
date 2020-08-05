@@ -18,6 +18,7 @@ import com.malong.moses.block.BlockProviderHelper;
 import com.malong.moses.connect.Connection;
 import com.malong.moses.connect.HttpInfo;
 import com.malong.moses.connect.ResponseInfo;
+import com.malong.moses.listener.BlockListener;
 import com.malong.moses.utils.Utils;
 
 import java.lang.reflect.Field;
@@ -123,6 +124,8 @@ public class DownBlockCallable implements Callable<Request> {
                 info.destination_uri = mInfo.destination_uri;
                 info.destination_path = mInfo.destination_path;
                 info.fileName = mInfo.fileName;
+                info.min_progress_step = mInfo.min_progress_step;
+                info.min_progress_time = mInfo.min_progress_time;
 
                 Uri insert = BlockProviderHelper.insert(mContext, info);
 
@@ -139,7 +142,7 @@ public class DownBlockCallable implements Callable<Request> {
                 if (partialInfo.status == BlockInfo.STATUS_SUCCESS) {
                     doneNum++;// 下载完成的不再处理，记录为完成
                 } else {
-                    BlockProviderHelper.updatePartialStutas(mContext,
+                    BlockProviderHelper.updatePartialStatus(mContext,
                             BlockInfo.STATUS_PENDING, partialInfo);
                     final ContentObserver observer = new PartialObserver(mHandler);
                     mContext.getContentResolver().registerContentObserver(
@@ -173,8 +176,6 @@ public class DownBlockCallable implements Callable<Request> {
                 curProcess += atomicLong;
             }
             mInfo.current_bytes = curProcess;
-            if (DEBUG) Log.d(TAG, "总进度:" + mInfo.current_bytes);
-
             ProviderHelper.updateProcess(mContext, mInfo);
             // 通知host uri observer
             Uri downloadUri = Utils.getDownloadBaseUri(mContext).buildUpon()
@@ -189,6 +190,22 @@ public class DownBlockCallable implements Callable<Request> {
     }
 
 
+
+//    /** 为触发{@link BlockListener 状态变更回调} */
+//    private void updateBlockStatus(Uri uri,int status) {
+//        String s = uri.getQueryParameter(Constants.KEY_PARTIAL_NUM);
+//        if (!TextUtils.isEmpty(s)) {
+//            // 通知host uri observer
+//            Uri downloadUri = Utils.getDownloadBaseUri(mContext).buildUpon()
+//                    .appendPath(String.valueOf(mInfo.id))
+//                    .appendQueryParameter(Constants.KEY_STATUS, String.valueOf(status))
+//                    .appendQueryParameter(Constants.KEY_PARTIAL_NUM, uri.getQueryParameter(Constants.KEY_PARTIAL_NUM))
+//                    .fragment(Constants.KEY_BLOCK_STATUS_CHANGE).build();
+//            mContext.getContentResolver().notifyChange(downloadUri, null);
+//        }
+//    }
+
+
     class PartialObserver extends BlockContentObserver {
 
         PartialObserver(Handler handler) {
@@ -198,29 +215,31 @@ public class DownBlockCallable implements Callable<Request> {
         @Override
         public void onProcessChange(Uri uri, long cur, long length) {
             super.onProcessChange(uri, cur, length);
-            if (DEBUG) Log.d(DownBlockCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
+//            if (DEBUG) Log.d(DownBlockCallable.TAG, "进度发生改变：" + uri.toString() + "当前进度=" + cur);
             updateProcess(uri);
         }
 
         @Override
         public void onStatusChange(Uri uri, int status) {
             if (DEBUG) Log.d(DownBlockCallable.TAG, "状态发生改变：当前状态" + uri.toString() + "=" + status);
+//            updateBlockStatus(uri,status);// 触发分片状态监听
             if (status == BlockInfo.STATUS_SUCCESS) {
                 mContext.getContentResolver().unregisterContentObserver(this);
                 doneNum++;
                 if (doneNum == mInfo.separate_num) {
                     // 都完成
                     ProviderHelper.updateStatus(mContext, Request.STATUS_SUCCESS, mInfo);
-                    quitLooper();
                 }
             } else if (status == BlockInfo.STATUS_STOP
-                    || status == BlockInfo.STATUS_CANCEL) {// 停止
+                    || status == BlockInfo.STATUS_CANCEL
+                    || status == BlockInfo.STATUS_FAIL) {
                 if (DEBUG) Log.d(TAG, "onStatusChange停止");
-                for (ContentObserver observer : observers) {
-                    mContext.getContentResolver().unregisterContentObserver(observer);
-
-                }
-//                ProviderHelper.updateStatus(mContext, DownloadInfo.STATUS_PAUSE, mInfo);
+                doneNum++;
+//                for (ContentObserver observer : observers) {
+                    mContext.getContentResolver().unregisterContentObserver(this);
+//                }
+            }
+            if (doneNum == mInfo.separate_num) {
                 quitLooper();
             }
         }
@@ -232,7 +251,7 @@ public class DownBlockCallable implements Callable<Request> {
         if (looper != null) {
             mThread.cancel = false;
             looper.quit();
-            // TODO: 2020-07-20 looper不能复用，这么应该会有坑，看看有什么问题在说
+            // looper不能复用，这么应该会有坑，暂不处理看看能出什么问题
             try {
                 // 清除ThreadLocal里的looper，否则再次prepare会报错。tip这里不会抛异常，但是会直接结束任务
                 @SuppressWarnings("JavaReflectionMemberAccess")
@@ -243,12 +262,6 @@ public class DownBlockCallable implements Callable<Request> {
                     ThreadLocal<?> threadLocal = (ThreadLocal<?>) ob;
                     threadLocal.set(null);
                 }
-
-//                // 防止引用消息队列，应该没用，写着玩吧。
-//                @SuppressWarnings("JavaReflectionMemberAccess")
-//                Field fieldThread = looper.getClass().getDeclaredField("mThread");
-//                fieldThread.setAccessible(true);
-//                fieldThread.set(looper,null);
             } catch (NoSuchFieldException e) {
                 e.printStackTrace();
             } catch (IllegalAccessException e) {

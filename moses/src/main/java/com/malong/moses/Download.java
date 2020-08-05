@@ -64,7 +64,7 @@ public class Download {
                 ProviderHelper.updateStatus(context, Request.STATUS_PENDING, oldInfo);
             }
         }
-        return Utils.getDownloadId(context,downloadUri);
+        return Utils.getDownloadId(context, downloadUri);
     }
 
     // 停止
@@ -82,7 +82,7 @@ public class Download {
         List<BlockInfo> partialInfoList = BlockProviderHelper
                 .queryPartialInfoList(context, info.id);
         for (BlockInfo partialInfo : partialInfoList) {
-            BlockProviderHelper.updatePartialStutas(
+            BlockProviderHelper.updatePartialStatus(
                     context, BlockInfo.STATUS_STOP, partialInfo);
         }
     }
@@ -97,11 +97,11 @@ public class Download {
 
 
     // 取消
-    public static int cancelDownload(Context context,@NonNull Request info) {
+    public static int cancelDownload(Context context, @NonNull Request info) {
         int deleteNum;
         if (info.id < 0) {
             Request oldInfo = ProviderHelper.queryOldDownload(context, info);
-            if (oldInfo==null) return 0;
+            if (oldInfo == null) return 0;
             deleteNum = ProviderHelper.delete(context, oldInfo);
         } else {
             deleteNum = ProviderHelper.delete(context, info);
@@ -132,22 +132,6 @@ public class Download {
         return ProviderHelper.queryStatus(context, info);
     }
 
-//    /**
-//     * 更新下载内容，之前下载过则返回旧的，没有则返回参数的信息
-//     */
-//    @NonNull
-//    public static DownloadTask convertDownloadInfo(Context context, DownloadTask info) {
-//        DownloadTask downloadTask;
-//        if (info.id <= 0) {
-//            // 没有设置ID
-//            downloadTask = ProviderHelper.queryOldDownload(context, info);
-//        } else {
-//            // 用ID查信息
-//            downloadTask = ProviderHelper.queryDownloadInfo(context, info.id);
-//        }
-//        if (downloadTask != null) info = downloadTask;
-//        return info;
-//    }
     /**
      * 更新下载内容，之前下载过则返回旧的，没有则返回参数的信息
      */
@@ -161,8 +145,8 @@ public class Download {
             // 用ID查信息
             downloadTask = ProviderHelper.queryDownloadInfo(context, info.id);
         }
-        if (downloadTask != null) info = downloadTask;
-        return info;
+        if (downloadTask == null) downloadTask = info;
+        return downloadTask;
     }
 
     /**
@@ -176,7 +160,7 @@ public class Download {
     // 查询分片下载条目
     @NonNull
     public static List<BlockInfo> queryPartialInfoList(Context context, int downloadId) {
-        return  BlockProviderHelper.queryPartialInfoList(context,downloadId);
+        return BlockProviderHelper.queryPartialInfoList(context, downloadId);
     }
 
 
